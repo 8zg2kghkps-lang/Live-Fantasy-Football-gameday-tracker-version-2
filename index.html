@@ -124,6 +124,7 @@
   };
 
   const SKILL_SLOTS = ['QB','RB','WR','TE','FLEX','W/R/T','Q/W/R/T'];
+  const AUTO_SLOTS = SKILL_SLOTS.concat(['D/ST','K']);
 
   function seedData(){
     return {
@@ -153,15 +154,10 @@
       yahoo: {
         label: 'Yahoo · Standard',
         starters: [
-          {slot:'QB', name:'', points:'', lastPlay:''},
-          {slot:'RB', name:'', points:'', lastPlay:''},
-          {slot:'WR', name:'', points:'', lastPlay:''},
           {slot:'W/R/T', name:'J. Chase', points:'', lastPlay:''},
           {slot:'W/R/T', name:'T. McMillan', points:'', lastPlay:''},
           {slot:'W/R/T', name:'T. Pollard', points:'', lastPlay:''},
           {slot:'Q/W/R/T', name:'M. Willis', points:'', lastPlay:''},
-          {slot:'D/ST', name:'', points:'', lastPlay:''},
-          {slot:'K', name:'', points:'', lastPlay:''},
         ],
         bench: [
           {name:'E. Egbuka', points:'', lastPlay:''},
@@ -247,7 +243,7 @@
         <span class="auto-status">${state.autoError ? state.autoError : state.autoStatus}</span>
       </div>
       <div class="banner">
-        <b>QB/RB/WR/TE only:</b> auto-sync pulls live box-score yards/TDs and computes points using each league's scoring. D/ST &amp; K stay manual (too league-specific). Tap ⚡ to log a play by hand anytime, or the AUTO badge to pause/resume a player.
+        <b>Auto-sync coverage:</b> QB/RB/WR/TE track fully. D/ST auto-tracks points/yards allowed, sacks, INTs &amp; fumble recoveries. K auto-tracks PATs made &amp; missed FGs. Defensive/return TDs, forced fumbles, blocked kicks, safeties, and FG makes by distance aren't in the public feed — log those by hand with ⚡ (TD checkbox included).
       </div>
       <div class="tabs">
         <div class="tab ${state.activeTab==='espn'?'active':''}" data-tab="espn">ESPN</div>
@@ -285,7 +281,7 @@
 
   function renderRowBlock(league, kind, i, p, d){
     const isOpen = state.openLog && state.openLog.league===league && state.openLog.kind===kind && state.openLog.idx===i;
-    const isSkill = kind === 'starter' && SKILL_SLOTS.includes(p.slot);
+    const isSkill = kind === 'starter' && AUTO_SLOTS.includes(p.slot);
     const autoBadge = isSkill ? `<button class="auto-badge ${p.autoEnabled===false?'paused':'on'}" data-action="toggle-auto" title="${p.autoEnabled===false?'Auto-sync paused — tap to resume':'Auto-syncing live stats — tap to pause'}">${p.autoEnabled===false?'⏸':'●'}${p.autoEnabled===false?'PAUSE':'AUTO'}</button>` : `<span></span>`;
     const rowInner = kind === 'starter' ? `
         <div class="slot-badge">${p.slot}</div>
@@ -361,11 +357,31 @@
 
       blockEl.querySelectorAll('input[data-field]').forEach(inp => {
         inp.addEventListener('input', () => {
-          list[idx][inp.dataset.field] = inp.value;
-          if (inp.dataset.field === 'points' && kind === 'starter' && SKILL_SLOTS.includes(list[idx].slot) && list[idx].autoEnabled !== false){
-            list[idx].autoEnabled = false;
-            const badge = blockEl.querySelector('.auto-badge');
-            if (badge){ badge.classList.remove('on'); badge.classList.add('paused'); badge.textContent = '⏸PAUSE'; badge.title = 'Auto-sync paused — tap to resume'; }
+          const field = inp.dataset.field;
+          if (field === 'name'){
+            const oldName = list[idx].name;
+            list[idx].name = inp.value;
+            if (inp.value.trim() !== oldName.trim()){
+              // New player in this slot — wipe old tracking so points start fresh for them.
+              list[idx].points = '';
+              list[idx].lastPlay = '';
+              list[idx].autoTotal = 0;
+              list[idx].autoStats = {};
+              list[idx].autoEnabled = true;
+              const ptsEl = blockEl.querySelector('.pts-input');
+              if (ptsEl) ptsEl.value = '';
+              const lpEl = blockEl.querySelector('.last-play');
+              if (lpEl){ lpEl.textContent = '—'; lpEl.classList.add('empty'); }
+              const badge = blockEl.querySelector('.auto-badge');
+              if (badge){ badge.classList.remove('paused'); badge.classList.add('on'); badge.textContent = '●AUTO'; badge.title = 'Auto-syncing live stats — tap to pause'; }
+            }
+          } else {
+            list[idx][field] = inp.value;
+            if (field === 'points' && kind === 'starter' && AUTO_SLOTS.includes(list[idx].slot) && list[idx].autoEnabled !== false){
+              list[idx].autoEnabled = false;
+              const badge = blockEl.querySelector('.auto-badge');
+              if (badge){ badge.classList.remove('on'); badge.classList.add('paused'); badge.textContent = '⏸PAUSE'; badge.title = 'Auto-sync paused — tap to resume'; }
+            }
           }
           bumpTotals(league);
           scheduleSave();
@@ -453,7 +469,7 @@
           else if (!/^[+\-]/.test(note)) note = '+' + note;
 
           const p = list[idx];
-          if (kind === 'starter' && SKILL_SLOTS.includes(p.slot)) p.autoEnabled = false;
+          if (kind === 'starter' && AUTO_SLOTS.includes(p.slot)) p.autoEnabled = false;
           if (!isNaN(delta) && delta !== 0){
             const current = parseFloat(p.points) || 0;
             p.points = (Math.round((current + delta) * 100) / 100).toString();
@@ -592,6 +608,59 @@
     pts += (s.fumLost||0) * -2;
     return Math.round(pts * 100) / 100;
   }
+
+  // Exact ESPN league scoring (from league Scoring Settings)
+  function calcDSTPoints(s){
+    let pts = 0;
+    const pa = s.pointsAllowed;
+    if (pa !== undefined && pa !== null){
+      if (pa === 0) pts += 5;
+      else if (pa <= 6) pts += 4;
+      else if (pa <= 13) pts += 3;
+      else if (pa <= 17) pts += 1;
+      else if (pa <= 21) pts += 0;
+      else if (pa <= 27) pts += 0;
+      else if (pa <= 34) pts += -1;
+      else if (pa <= 45) pts += -3;
+      else pts += -5;
+    }
+    const ya = s.yardsAllowed;
+    if (ya !== undefined && ya !== null){
+      if (ya < 100) pts += 5;
+      else if (ya <= 199) pts += 3;
+      else if (ya <= 299) pts += 2;
+      else if (ya <= 349) pts += 0;
+      else if (ya <= 399) pts += -1;
+      else if (ya <= 449) pts += -3;
+      else if (ya <= 499) pts += -5;
+      else if (ya <= 549) pts += -6;
+      else pts += -7;
+    }
+    pts += (s.sacks||0) * 1;
+    pts += (s.int||0) * 2;
+    pts += (s.fumRec||0) * 2;
+    return Math.round(pts * 100) / 100;
+  }
+  function calcKPoints(s){
+    let pts = 0;
+    pts += (s.patMade||0) * 1;
+    pts += (s.fgMiss||0) * -1;
+    return Math.round(pts * 100) / 100;
+  }
+  function describeDeltaDST(oldS, newS){
+    oldS = oldS || {};
+    if ((newS.sacks||0) > (oldS.sacks||0)) return '+Sack';
+    if ((newS.int||0) > (oldS.int||0)) return '+INT';
+    if ((newS.fumRec||0) > (oldS.fumRec||0)) return '+Fumble Rec';
+    if (newS.pointsAllowed !== undefined && oldS.pointsAllowed !== undefined && newS.pointsAllowed !== oldS.pointsAllowed) return 'Score update';
+    return null;
+  }
+  function describeDeltaK(oldS, newS){
+    oldS = oldS || {};
+    if ((newS.patMade||0) > (oldS.patMade||0)) return '+PAT';
+    if ((newS.fgMiss||0) > (oldS.fgMiss||0)) return 'Missed FG';
+    return null;
+  }
   function describeDelta(oldS, newS){
     oldS = oldS || {};
     const d = {
@@ -622,11 +691,58 @@
       return st === 'in' || st === 'post';
     });
     const allPlayers = [];
+    const teamsMap = {};
+    const pairs = [];
+
     for (const ev of events){
       try {
         const sumRes = await fetch('https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event=' + ev.id);
         if (!sumRes.ok) continue;
         const sum = await sumRes.json();
+
+        // --- team score (points allowed) pairing ---
+        const comp = sum.header && sum.header.competitions && sum.header.competitions[0];
+        if (comp && comp.competitors && comp.competitors.length === 2){
+          const ids = [];
+          comp.competitors.forEach(c => {
+            const tid = c.team && c.team.id;
+            if (!tid) return;
+            ids.push(tid);
+            teamsMap[tid] = teamsMap[tid] || { abbr: c.team.abbreviation, nickname: (c.team.name || c.team.shortDisplayName || '').toLowerCase() };
+            teamsMap[tid].scoreFor = parseFloat(c.score) || 0;
+          });
+          if (ids.length === 2){
+            teamsMap[ids[0]].pointsAllowed = teamsMap[ids[1]].scoreFor;
+            teamsMap[ids[1]].pointsAllowed = teamsMap[ids[0]].scoreFor;
+            pairs.push(ids);
+          }
+        }
+
+        // --- team-level box score stats (yards, sacks-allowed, turnovers) ---
+        const teamStatsArr = (sum.boxscore && sum.boxscore.teams) || [];
+        teamStatsArr.forEach(ts => {
+          const tid = ts.team && ts.team.id;
+          if (!tid) return;
+          teamsMap[tid] = teamsMap[tid] || { abbr: ts.team.abbreviation, nickname: (ts.team.name || ts.team.shortDisplayName || '').toLowerCase() };
+          const stats = ts.statistics || [];
+          const find = (names) => {
+            for (const n of names){
+              const f = stats.find(s => (s.name||'').toLowerCase() === n.toLowerCase());
+              if (f) return parseFloat(f.displayValue) || 0;
+            }
+            return null;
+          };
+          const totalYds = find(['totalYards']);
+          const sacksAllowed = find(['sacksYardsLost','sacks']);
+          const intThrown = find(['interceptions']);
+          const fumLost = find(['fumblesLost']);
+          if (totalYds != null) teamsMap[tid].ownYards = totalYds;
+          if (sacksAllowed != null) teamsMap[tid].sacksAllowed = sacksAllowed;
+          if (intThrown != null) teamsMap[tid].turnoverInt = intThrown;
+          if (fumLost != null) teamsMap[tid].turnoverFum = fumLost;
+        });
+
+        // --- player-level stats (passing/rushing/receiving/fumbles/kicking) ---
         const teams = (sum.boxscore && sum.boxscore.players) || [];
         teams.forEach(team => {
           (team.statistics || []).forEach(cat => {
@@ -636,51 +752,100 @@
             const intIdx = labels.indexOf('INT');
             const recIdx = labels.indexOf('REC');
             const lostIdx = labels.indexOf('LOST');
+            const fgIdx = labels.indexOf('FG');
+            const xpIdx = labels.indexOf('XP');
             (cat.athletes || []).forEach(a => {
               const nm = a.athlete && a.athlete.displayName;
               if (!nm) return;
               const stats = a.stats || [];
               const num = (i) => (i >= 0 && stats[i] !== undefined) ? (parseFloat(stats[i]) || 0) : 0;
               let entry = allPlayers.find(p => p.name === nm);
-              if (!entry){ entry = {name: nm, passYds:0,passTD:0,int:0,rushYds:0,rushTD:0,recYds:0,recTD:0,rec:0,fumLost:0}; allPlayers.push(entry); }
+              if (!entry){ entry = {name: nm, passYds:0,passTD:0,int:0,rushYds:0,rushTD:0,recYds:0,recTD:0,rec:0,fumLost:0,fgMake:0,fgAtt:0,fgMiss:0,patMade:0,patAtt:0}; allPlayers.push(entry); }
               if (cat.name === 'passing'){ entry.passYds += num(ydsIdx); entry.passTD += num(tdIdx); entry.int += num(intIdx); }
               else if (cat.name === 'rushing'){ entry.rushYds += num(ydsIdx); entry.rushTD += num(tdIdx); }
               else if (cat.name === 'receiving'){ entry.recYds += num(ydsIdx); entry.recTD += num(tdIdx); entry.rec += num(recIdx); }
               else if (cat.name === 'fumbles'){ entry.fumLost += num(lostIdx); }
+              else if (cat.name === 'kicking'){
+                const parseFrac = (s) => { if (!s) return {made:0,att:0}; const parts = String(s).split('/'); return { made: parseInt(parts[0],10)||0, att: parseInt(parts[1],10)||0 }; };
+                const fg = parseFrac(fgIdx>=0 ? stats[fgIdx] : null);
+                const xp = parseFrac(xpIdx>=0 ? stats[xpIdx] : null);
+                entry.fgMake += fg.made; entry.fgAtt += fg.att; entry.fgMiss = entry.fgAtt - entry.fgMake;
+                entry.patMade += xp.made; entry.patAtt += xp.att;
+              }
             });
           });
         });
       } catch(err) { /* skip this game, keep going */ }
     }
-    return allPlayers;
+
+    // cross-assign opponent-derived D/ST credit (yards/turnovers allowed by the OTHER team's offense)
+    pairs.forEach(([a,b]) => {
+      if (!teamsMap[a] || !teamsMap[b]) return;
+      teamsMap[a].yardsAllowed = teamsMap[b].ownYards;
+      teamsMap[b].yardsAllowed = teamsMap[a].ownYards;
+      teamsMap[a].int = teamsMap[b].turnoverInt;
+      teamsMap[b].int = teamsMap[a].turnoverInt;
+      teamsMap[a].fumRec = teamsMap[b].turnoverFum;
+      teamsMap[b].fumRec = teamsMap[a].turnoverFum;
+      teamsMap[a].sacks = teamsMap[b].sacksAllowed;
+      teamsMap[b].sacks = teamsMap[a].sacksAllowed;
+    });
+
+    return { players: allPlayers, teams: Object.values(teamsMap) };
   }
 
   async function pollLiveStats(){
     if (!state.autoOn) return;
     try {
-      const allPlayers = await fetchLiveStatLines();
+      const { players: allPlayers, teams: allTeams } = await fetchLiveStatLines();
       ['espn','yahoo'].forEach(league => {
         const scoring = league === 'espn' ? 'half-ppr' : 'standard';
         state.data[league].starters.forEach((p, idx) => {
           if (!p.name || !p.name.trim()) return;
-          if (!SKILL_SLOTS.includes(p.slot)) return;
+          if (!AUTO_SLOTS.includes(p.slot)) return;
           if (p.autoEnabled === false) return;
-          const match = allPlayers.find(sp => namesMatch(p.name, sp.name));
-          if (!match) return;
-          const newTotal = calcPoints(match, scoring);
-          const oldStats = p.autoStats || {};
-          const oldTDs = (oldStats.rushTD||0) + (oldStats.recTD||0) + (oldStats.passTD||0);
-          const newTDs = (match.rushTD||0) + (match.recTD||0) + (match.passTD||0);
-          const desc = describeDelta(oldStats, match);
+
+          let newTotal, desc, oldStats, newStats, isTDEvent = false;
+
+          if (SKILL_SLOTS.includes(p.slot)){
+            const match = allPlayers.find(sp => namesMatch(p.name, sp.name));
+            if (!match) return;
+            newTotal = calcPoints(match, scoring);
+            oldStats = p.autoStats || {};
+            const oldTDs = (oldStats.rushTD||0) + (oldStats.recTD||0) + (oldStats.passTD||0);
+            const newTDs = (match.rushTD||0) + (match.recTD||0) + (match.passTD||0);
+            desc = describeDelta(oldStats, match);
+            isTDEvent = newTDs > oldTDs;
+            newStats = { passYds:match.passYds, passTD:match.passTD, int:match.int, rushYds:match.rushYds, rushTD:match.rushTD, recYds:match.recYds, recTD:match.recTD, rec:match.rec, fumLost:match.fumLost };
+          } else if (p.slot === 'D/ST' && league === 'espn'){
+            const nickname = p.name.replace(/\s*D\/ST$/i,'').trim().toLowerCase();
+            if (!nickname) return;
+            const match = allTeams.find(t => t.nickname && (t.nickname.includes(nickname) || nickname.includes(t.nickname)));
+            if (!match) return;
+            newTotal = calcDSTPoints(match);
+            oldStats = p.autoStats || {};
+            desc = describeDeltaDST(oldStats, match);
+            newStats = { pointsAllowed: match.pointsAllowed, yardsAllowed: match.yardsAllowed, sacks: match.sacks, int: match.int, fumRec: match.fumRec };
+          } else if (p.slot === 'K' && league === 'espn'){
+            const match = allPlayers.find(sp => namesMatch(p.name, sp.name) && (sp.fgAtt > 0 || sp.patAtt > 0));
+            if (!match) return;
+            newTotal = calcKPoints(match);
+            oldStats = p.autoStats || {};
+            desc = describeDeltaK(oldStats, match);
+            newStats = { patMade: match.patMade, fgMiss: match.fgMiss };
+          } else {
+            return;
+          }
+
           const prevTotal = p.autoTotal || 0;
           if (desc || newTotal !== prevTotal){
             p.autoTotal = newTotal;
             p.points = newTotal.toFixed(2);
             if (desc) p.lastPlay = desc;
-            p.autoStats = { passYds:match.passYds, passTD:match.passTD, int:match.int, rushYds:match.rushYds, rushTD:match.rushTD, recYds:match.recYds, recTD:match.recTD, rec:match.rec, fumLost:match.fumLost };
+            p.autoStats = newStats;
             scheduleSave();
             updatePlayerDOM(league, 'starter', idx, p);
-            if (newTDs > oldTDs){
+            if (isTDEvent){
               triggerTouchdown(p.name, newTotal - prevTotal);
             }
           }
