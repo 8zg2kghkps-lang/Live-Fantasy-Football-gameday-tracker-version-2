@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Gameday Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>html, body { margin:0; padding:0; background:#14181B; }</style>
+</head>
+<body>
+<div id="ft-root"></div>
+<style>
+  #ft-root {
+    --bg: #14181B;
+    --panel: #1D2226;
+    --panel-2: #23292E;
+    --line: #2C3339;
+    --turf: #3E7A52;
+    --turf-bright: #57A96F;
+    --amber: #E3A23C;
+    --text: #ECEAE3;
+    --text-dim: #9AA3A8;
+    --danger: #C4593F;
+    font-family: 'Inter', system-ui, sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    padding: 0;
+    max-width: 780px;
+    margin: 0 auto;
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+  }
+  #ft-root * { box-sizing: border-box; }
+  #ft-root .scoreboard { background: linear-gradient(180deg, #1A2E22 0%, #14181B 100%); border-bottom: 1px solid var(--line); padding: 18px 20px 14px; }
+  #ft-root .sb-top { display:flex; justify-content:space-between; align-items:baseline; margin-bottom: 12px; }
+  #ft-root .sb-title { font-family: 'Barlow Condensed', sans-serif; font-size: 22px; letter-spacing: 0.02em; font-weight: 600; }
+  #ft-root .week-picker { display:flex; align-items:center; gap:8px; font-family:'Barlow Condensed', sans-serif; font-size: 15px; color: var(--text-dim); }
+  #ft-root select.week-select { background: var(--panel-2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; font-family: inherit; font-size: 14px; }
+  #ft-root .sb-grid { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  #ft-root .sb-card { background: rgba(0,0,0,0.18); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; transition: box-shadow 0.3s; }
+  #ft-root .sb-card.bump { animation: card-bump 0.5s ease; }
+  #ft-root .sb-card .league-name { font-family:'Barlow Condensed', sans-serif; font-size: 14px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); margin-bottom: 2px; }
+  #ft-root .sb-card .league-total { font-family:'Barlow Condensed', sans-serif; font-variant-numeric: tabular-nums; font-size: 40px; font-weight: 600; line-height: 1; color: var(--turf-bright); }
+  #ft-root .sb-card .league-sub { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+  #ft-root .banner { font-size: 12.5px; color: var(--text-dim); background: var(--panel-2); border-bottom: 1px solid var(--line); padding: 9px 20px; line-height: 1.5; }
+  #ft-root .banner b { color: var(--amber); font-weight: 600; }
+  #ft-root .auto-bar { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; padding: 8px 20px; background: var(--panel); border-bottom: 1px solid var(--line); font-size: 12px; }
+  #ft-root .auto-toggle { display:flex; align-items:center; gap:6px; color: var(--text); cursor:pointer; font-weight:600; }
+  #ft-root .auto-toggle input { accent-color: var(--turf-bright); width:15px; height:15px; }
+  #ft-root .auto-status { color: var(--text-dim); }
+  #ft-root .tabs { display:flex; border-bottom: 1px solid var(--line); background: var(--panel); }
+  #ft-root .tab { flex:1; text-align:center; padding: 11px 0; cursor:pointer; font-family:'Barlow Condensed', sans-serif; font-size: 16px; letter-spacing: 0.03em; color: var(--text-dim); border-bottom: 2px solid transparent; user-select:none; }
+  #ft-root .tab.active { color: var(--text); border-bottom-color: var(--turf-bright); }
+  #ft-root .league-body { padding: 16px 18px 22px; }
+  #ft-root .section-label { font-family:'Barlow Condensed', sans-serif; font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); margin: 18px 0 8px; display:flex; justify-content:space-between; align-items:center; }
+  #ft-root .section-label:first-child { margin-top: 0; }
+  #ft-root .row-block { border-bottom: 1px solid var(--line); border-radius: 8px; transition: background 0.25s, box-shadow 0.25s; }
+  #ft-root .row-block.flash { background: rgba(87,169,111,0.14); box-shadow: 0 0 0 1px var(--turf-bright) inset; animation: row-flash 1.3s ease; }
+  #ft-root .row { display:grid; grid-template-columns: 50px 1fr 70px 44px 24px 56px 20px; gap: 5px; align-items:center; padding: 7px 2px; }
+  #ft-root .row.bench-row { grid-template-columns: 1fr 70px 24px 56px 20px; }
+  #ft-root .slot-badge { font-family:'Barlow Condensed', sans-serif; font-size: 11.5px; text-align:center; background: var(--panel-2); border: 1px solid var(--line); border-radius: 5px; padding: 3px 1px; color: var(--text-dim); }
+  #ft-root input.name-input { background: transparent; border: none; color: var(--text); font-size: 13.5px; width: 100%; padding: 4px 2px; font-family: inherit; }
+  #ft-root input.name-input::placeholder { color: #55606a; }
+  #ft-root input.name-input:focus { outline: none; background: var(--panel-2); border-radius: 5px; }
+  #ft-root .pts-wrap { display:flex; flex-direction:column; align-items:stretch; gap: 2px; }
+  #ft-root .last-play { font-size: 10px; text-align:right; color: var(--amber); font-weight: 600; min-height: 12px; padding-right: 2px; letter-spacing: 0.01em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #ft-root .last-play.empty { color: transparent; }
+  #ft-root .last-play.pop { animation: pop-text 0.5s ease; }
+  #ft-root input.pts-input { background: var(--panel-2); border: 1px solid var(--line); color: var(--turf-bright); font-family:'Barlow Condensed', sans-serif; font-variant-numeric: tabular-nums; font-size: 15px; font-weight: 600; text-align:right; border-radius: 6px; padding: 5px 5px; width: 100%; }
+  #ft-root input.pts-input:focus { outline: 1px solid var(--turf-bright); }
+  #ft-root button.auto-badge { font-family:'Barlow Condensed', sans-serif; font-size: 9.5px; font-weight:700; letter-spacing:0.02em; border-radius: 5px; padding: 4px 2px; cursor:pointer; border: 1px solid var(--line); background: var(--panel-2); line-height:1.1; }
+  #ft-root button.auto-badge.on { color: var(--turf-bright); border-color: var(--turf-bright); }
+  #ft-root button.auto-badge.paused { color: var(--text-dim); }
+  #ft-root select.move-select { background: var(--panel-2); color: var(--text-dim); border: 1px solid var(--line); border-radius: 6px; font-size: 10.5px; padding: 4px 1px; width: 100%; font-family: inherit; }
+  #ft-root button.del-btn { background: none; border: none; color: #55606a; cursor:pointer; font-size: 16px; line-height: 1; padding: 2px; }
+  #ft-root button.del-btn:hover { color: var(--danger); }
+  #ft-root button.log-btn { background: var(--panel-2); border: 1px solid var(--line); color: var(--amber); cursor:pointer; font-size: 13px; border-radius: 6px; padding: 5px 2px; line-height:1; }
+  #ft-root button.log-btn:hover { border-color: var(--amber); }
+  #ft-root .log-panel { display:flex; flex-wrap:wrap; gap: 6px; align-items:center; padding: 8px; margin: 0 2px 8px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; }
+  #ft-root .log-panel input[type="text"] { flex: 1 1 150px; background: var(--bg); border: 1px solid var(--line); color: var(--text); border-radius: 6px; padding: 6px 8px; font-size: 13px; font-family: inherit; }
+  #ft-root .log-panel input[type="number"] { width: 78px; background: var(--bg); border: 1px solid var(--line); color: var(--turf-bright); border-radius: 6px; padding: 6px 8px; font-size: 13px; font-family: inherit; }
+  #ft-root .td-check { display:flex; align-items:center; gap:4px; font-size: 12px; color: var(--text-dim); white-space:nowrap; }
+  #ft-root .log-submit-btn, #ft-root .log-cancel-btn { border-radius: 6px; padding: 6px 10px; font-size: 12px; cursor:pointer; font-family: inherit; border: 1px solid var(--line); }
+  #ft-root .log-submit-btn { background: var(--turf); color: #fff; border-color: var(--turf); }
+  #ft-root .log-cancel-btn { background: transparent; color: var(--text-dim); }
+  #ft-root button.add-btn { background: none; border: 1px dashed var(--line); color: var(--text-dim); border-radius: 6px; padding: 3px 10px; font-size: 12px; cursor:pointer; font-family: inherit; }
+  #ft-root button.add-btn:hover { border-color: var(--turf-bright); color: var(--turf-bright); }
+  #ft-root .footer-row { display:flex; justify-content:space-between; align-items:center; margin-top: 18px; }
+  #ft-root button.week-btn { background: var(--panel-2); border: 1px solid var(--line); color: var(--text-dim); border-radius: 6px; padding: 6px 12px; font-size: 12px; cursor:pointer; font-family: inherit; }
+  #ft-root button.week-btn:hover { color: var(--text); border-color: var(--turf-bright); }
+  #ft-root .save-note { font-size: 11px; color: #55606a; }
+  #ft-root .empty-hint { font-size: 12px; color: #55606a; padding: 6px 0; }
+
+  #ft-root .td-overlay { position:absolute; inset:0; z-index:999; display:none; align-items:center; justify-content:center; overflow:hidden; background: rgba(10,14,16,0.35); }
+  #ft-root .td-overlay.show { display:flex; }
+  #ft-root .confetti-piece { position:absolute; top:-14px; border-radius: 2px; opacity: 0.95; will-change: transform, opacity; }
+  #ft-root .td-popup { background: linear-gradient(160deg,#1E3A29,#12161A); border:2px solid var(--turf-bright); border-radius:16px; padding:20px 32px; text-align:center; box-shadow:0 0 44px rgba(87,169,111,0.55); animation: td-pop-in 0.5s cubic-bezier(.34,1.56,.64,1); }
+  #ft-root .td-emoji { font-size: 38px; line-height:1; }
+  #ft-root .td-headline { font-family:'Barlow Condensed', sans-serif; font-size: 26px; font-weight: 700; color: var(--amber); letter-spacing: 0.06em; margin-top: 4px; }
+  #ft-root .td-player { font-size: 16px; margin-top: 6px; color: var(--text); }
+  #ft-root .td-points { font-family:'Barlow Condensed', sans-serif; font-size: 20px; color: var(--turf-bright); margin-top: 2px; font-weight:600; }
+
+  @keyframes td-pop-in { 0% { transform: scale(0.5) translateY(16px); opacity:0; } 60% { transform: scale(1.07); opacity:1; } 100% { transform: scale(1); } }
+  @keyframes confetti-fall { 0% { transform: translateY(-10px) rotate(0deg); opacity:1; } 100% { transform: translateY(340px) rotate(680deg); opacity:0; } }
+  @keyframes row-flash { 0% { background: rgba(87,169,111,0.35); } 100% { background: transparent; } }
+  @keyframes pop-text { 0% { transform: scale(1.6); } 100% { transform: scale(1); } }
+  @keyframes card-bump { 0% { transform: scale(1); } 30% { transform: scale(1.035); } 100% { transform: scale(1); } }
+</style>
+<script>
+(function(){
+
+  window.storage = {
+    async get(key){
+      const raw = localStorage.getItem(key);
+      return raw === null ? null : { key, value: raw };
+    },
+    async set(key, value){
+      localStorage.setItem(key, value);
+      return { key, value };
+    }
+  };
+
+  const SKILL_SLOTS = ['QB','RB','WR','TE','FLEX','W/R/T','Q/W/R/T'];
+
+  function seedData(){
+    return {
+      espn: {
+        label: 'ESPN · Half-PPR',
+        starters: [
+          {slot:'QB', name:'J. Dart', points:'', lastPlay:''},
+          {slot:'RB', name:'J. Cook III', points:'', lastPlay:''},
+          {slot:'RB', name:'J. Taylor', points:'', lastPlay:''},
+          {slot:'WR', name:'T. Higgins', points:'', lastPlay:''},
+          {slot:'WR', name:'T. McMillan', points:'', lastPlay:''},
+          {slot:'TE', name:'T. McBride', points:'', lastPlay:''},
+          {slot:'FLEX', name:'Q. Judkins', points:'', lastPlay:''},
+          {slot:'D/ST', name:'Jaguars D/ST', points:'', lastPlay:''},
+          {slot:'K', name:'C. Little', points:'', lastPlay:''},
+        ],
+        bench: [
+          {name:'J. Coker', points:'', lastPlay:''},
+          {name:'C. Godwin Jr.', points:'', lastPlay:''},
+          {name:'M. Lloyd', points:'', lastPlay:''},
+          {name:'B. Thomas Jr.', points:'', lastPlay:''},
+          {name:'B. Tuten', points:'', lastPlay:''},
+          {name:'C. Watson', points:'', lastPlay:''},
+          {name:'Texans D/ST', points:'', lastPlay:''},
+        ]
+      },
+      yahoo: {
+        label: 'Yahoo · Standard',
+        starters: [
+          {slot:'QB', name:'', points:'', lastPlay:''},
+          {slot:'RB', name:'', points:'', lastPlay:''},
+          {slot:'WR', name:'', points:'', lastPlay:''},
+          {slot:'W/R/T', name:'J. Chase', points:'', lastPlay:''},
+          {slot:'W/R/T', name:'T. McMillan', points:'', lastPlay:''},
+          {slot:'W/R/T', name:'T. Pollard', points:'', lastPlay:''},
+          {slot:'Q/W/R/T', name:'M. Willis', points:'', lastPlay:''},
+          {slot:'D/ST', name:'', points:'', lastPlay:''},
+          {slot:'K', name:'', points:'', lastPlay:''},
+        ],
+        bench: [
+          {name:'E. Egbuka', points:'', lastPlay:''},
+          {name:'T. Henderson', points:'', lastPlay:''},
+          {name:'C. Ward', points:'', lastPlay:''},
+          {name:'T. Tucker', points:'', lastPlay:''},
+        ]
+      }
+    };
+  }
+
+  const root = document.getElementById('ft-root');
+  let state = { week: 1, activeTab: 'espn', data: {}, openLog: null, autoOn: false, autoStatus: 'Off', autoError: null };
+  let saveTimer = null;
+  let autoIntervalId = null;
+
+  function weekKey(w){ return 'roster:week:' + w; }
+
+  async function loadWeek(w){
+    try {
+      const res = await window.storage.get(weekKey(w), false);
+      state.data = res ? JSON.parse(res.value) : seedData();
+    } catch(e){
+      state.data = seedData();
+    }
+    state.openLog = null;
+    render();
+  }
+
+  function scheduleSave(){
+    clearTimeout(saveTimer);
+    const noteEl = root.querySelector('.save-note');
+    if (noteEl) noteEl.textContent = 'Saving…';
+    saveTimer = setTimeout(async () => {
+      try {
+        await window.storage.set(weekKey(state.week), JSON.stringify(state.data), false);
+        const n = root.querySelector('.save-note');
+        if (n) n.textContent = 'Saved';
+      } catch(e){
+        const n = root.querySelector('.save-note');
+        if (n) n.textContent = 'Save failed';
+      }
+    }, 400);
+  }
+
+  function total(league){
+    return state.data[league].starters.reduce((sum, p) => {
+      const v = parseFloat(p.points);
+      return sum + (isNaN(v) ? 0 : v);
+    }, 0);
+  }
+  function startersFilled(league){
+    return state.data[league].starters.filter(p => p.name.trim()).length;
+  }
+
+  function render(){
+    const d = state.data;
+    root.innerHTML = `
+      <div class="scoreboard">
+        <div class="sb-top">
+          <div class="sb-title">Gameday Tracker</div>
+          <div class="week-picker">Week
+            <select class="week-select">
+              ${Array.from({length:18},(_,i)=>i+1).map(w=>`<option value="${w}" ${w===state.week?'selected':''}>${w}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div class="sb-grid">
+          <div class="sb-card" data-card="espn">
+            <div class="league-name">${d.espn.label}</div>
+            <div class="league-total">${total('espn').toFixed(2)}</div>
+            <div class="league-sub">${startersFilled('espn')}/${d.espn.starters.length} starters set</div>
+          </div>
+          <div class="sb-card" data-card="yahoo">
+            <div class="league-name">${d.yahoo.label}</div>
+            <div class="league-total">${total('yahoo').toFixed(2)}</div>
+            <div class="league-sub">${startersFilled('yahoo')}/${d.yahoo.starters.length} starters set</div>
+          </div>
+        </div>
+      </div>
+      <div class="auto-bar">
+        <label class="auto-toggle"><input type="checkbox" id="auto-toggle-input" ${state.autoOn?'checked':''}> ⚡ Live Auto-Update (15s)</label>
+        <span class="auto-status">${state.autoError ? state.autoError : state.autoStatus}</span>
+      </div>
+      <div class="banner">
+        <b>QB/RB/WR/TE only:</b> auto-sync pulls live box-score yards/TDs and computes points using each league's scoring. D/ST &amp; K stay manual (too league-specific). Tap ⚡ to log a play by hand anytime, or the AUTO badge to pause/resume a player.
+      </div>
+      <div class="tabs">
+        <div class="tab ${state.activeTab==='espn'?'active':''}" data-tab="espn">ESPN</div>
+        <div class="tab ${state.activeTab==='yahoo'?'active':''}" data-tab="yahoo">Yahoo</div>
+      </div>
+      <div class="league-body">
+        ${renderLeague(state.activeTab)}
+        <div class="footer-row">
+          <button class="week-btn" id="clone-btn">Copy roster names → next week</button>
+          <span class="save-note"></span>
+        </div>
+      </div>
+      <div class="td-overlay">
+        <div class="confetti-layer"></div>
+        <div class="td-popup">
+          <div class="td-emoji">🏈</div>
+          <div class="td-headline">TOUCHDOWN!</div>
+          <div class="td-player"></div>
+          <div class="td-points"></div>
+        </div>
+      </div>
+    `;
+    attachHandlers();
+  }
+
+  function renderLeague(league){
+    const d = state.data[league];
+    return `
+      <div class="section-label">Starters</div>
+      ${d.starters.map((p,i)=>renderRowBlock(league,'starter',i,p,d)).join('')}
+      <div class="section-label">Bench <button class="add-btn" data-action="add-bench">+ Add player</button></div>
+      ${d.bench.length ? d.bench.map((p,i)=>renderRowBlock(league,'bench',i,p,d)).join('') : `<div class="empty-hint">No bench players added yet.</div>`}
+    `;
+  }
+
+  function renderRowBlock(league, kind, i, p, d){
+    const isOpen = state.openLog && state.openLog.league===league && state.openLog.kind===kind && state.openLog.idx===i;
+    const isSkill = kind === 'starter' && SKILL_SLOTS.includes(p.slot);
+    const autoBadge = isSkill ? `<button class="auto-badge ${p.autoEnabled===false?'paused':'on'}" data-action="toggle-auto" title="${p.autoEnabled===false?'Auto-sync paused — tap to resume':'Auto-syncing live stats — tap to pause'}">${p.autoEnabled===false?'⏸':'●'}${p.autoEnabled===false?'PAUSE':'AUTO'}</button>` : `<span></span>`;
+    const rowInner = kind === 'starter' ? `
+        <div class="slot-badge">${p.slot}</div>
+        <input class="name-input" placeholder="Add player…" value="${escapeAttr(p.name)}" data-field="name">
+        <div class="pts-wrap">
+          <div class="last-play ${p.lastPlay ? '' : 'empty'}">${escapeAttr(p.lastPlay || '—')}</div>
+          <input class="pts-input" placeholder="0.0" inputmode="decimal" value="${escapeAttr(p.points)}" data-field="points">
+        </div>
+        ${autoBadge}
+        <button class="log-btn" data-action="toggle-log" title="Log a play">⚡</button>
+        <select class="move-select" data-field="move">
+          <option value="">Move…</option>
+          <option value="bench">→ Bench</option>
+        </select>
+        <button class="del-btn" data-action="clear" title="Clear">×</button>
+      ` : `
+        <input class="name-input" placeholder="Player name…" value="${escapeAttr(p.name)}" data-field="name">
+        <div class="pts-wrap">
+          <div class="last-play ${p.lastPlay ? '' : 'empty'}">${escapeAttr(p.lastPlay || '—')}</div>
+          <input class="pts-input" placeholder="0.0" inputmode="decimal" value="${escapeAttr(p.points)}" data-field="points">
+        </div>
+        <button class="log-btn" data-action="toggle-log" title="Log a play">⚡</button>
+        <select class="move-select" data-field="move">
+          <option value="">Move…</option>
+          ${d.starters.map((s,si)=>`<option value="${si}">→ ${s.slot}${s.name ? ' (swap)' : ''}</option>`).join('')}
+        </select>
+        <button class="del-btn" data-action="remove-bench" title="Remove">×</button>
+      `;
+    return `
+      <div class="row-block" data-league="${league}" data-kind="${kind}" data-idx="${i}">
+        <div class="row ${kind==='bench'?'bench-row':''}">${rowInner}</div>
+        ${isOpen ? `
+        <div class="log-panel">
+          <input type="text" class="log-note" placeholder="Play note, e.g. 60 yd catch" value="">
+          <input type="number" step="0.1" class="log-delta" placeholder="pts +/-" value="">
+          <label class="td-check"><input type="checkbox" class="log-td"> 🏈 Touchdown</label>
+          <button class="log-submit-btn" data-action="log-submit">Add</button>
+          <button class="log-cancel-btn" data-action="log-cancel">Cancel</button>
+        </div>` : ``}
+      </div>
+    `;
+  }
+
+  function escapeAttr(v){
+    return String(v ?? '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+  }
+  function getList(league, kind){
+    return kind === 'starter' ? state.data[league].starters : state.data[league].bench;
+  }
+
+  function attachHandlers(){
+    root.querySelector('.week-select').addEventListener('change', (e) => {
+      state.week = parseInt(e.target.value, 10);
+      loadWeek(state.week);
+    });
+
+    root.querySelectorAll('.tab').forEach(t => {
+      t.addEventListener('click', () => { state.activeTab = t.dataset.tab; state.openLog = null; render(); });
+    });
+
+    const autoToggle = root.querySelector('#auto-toggle-input');
+    if (autoToggle){
+      autoToggle.addEventListener('change', () => {
+        state.autoOn = autoToggle.checked;
+        if (state.autoOn){ pollLiveStats(); startAutoInterval(); }
+        else { stopAutoInterval(); state.autoStatus = 'Off'; state.autoError = null; updateAutoStatusDOM(); }
+      });
+    }
+
+    root.querySelectorAll('.row-block').forEach(blockEl => {
+      const league = blockEl.dataset.league, kind = blockEl.dataset.kind, idx = parseInt(blockEl.dataset.idx, 10);
+      const list = getList(league, kind);
+
+      blockEl.querySelectorAll('input[data-field]').forEach(inp => {
+        inp.addEventListener('input', () => {
+          list[idx][inp.dataset.field] = inp.value;
+          if (inp.dataset.field === 'points' && kind === 'starter' && SKILL_SLOTS.includes(list[idx].slot) && list[idx].autoEnabled !== false){
+            list[idx].autoEnabled = false;
+            const badge = blockEl.querySelector('.auto-badge');
+            if (badge){ badge.classList.remove('on'); badge.classList.add('paused'); badge.textContent = '⏸PAUSE'; badge.title = 'Auto-sync paused — tap to resume'; }
+          }
+          bumpTotals(league);
+          scheduleSave();
+        });
+      });
+
+      const moveSel = blockEl.querySelector('select[data-field="move"]');
+      if (moveSel){
+        moveSel.addEventListener('change', () => {
+          if (kind === 'starter' && moveSel.value === 'bench'){
+            const p = state.data[league].starters[idx];
+            state.data[league].bench.push({name: p.name, points: p.points, lastPlay: p.lastPlay});
+            state.data[league].starters[idx] = {slot: p.slot, name: '', points: '', lastPlay: '', autoEnabled: true, autoTotal: 0, autoStats: {}};
+          } else if (kind === 'bench' && moveSel.value !== ''){
+            const targetIdx = parseInt(moveSel.value, 10);
+            const bp = state.data[league].bench[idx];
+            const sp = state.data[league].starters[targetIdx];
+            if (sp.name.trim()){
+              state.data[league].bench[idx] = {name: sp.name, points: sp.points, lastPlay: sp.lastPlay};
+            } else {
+              state.data[league].bench.splice(idx, 1);
+            }
+            state.data[league].starters[targetIdx] = {slot: sp.slot, name: bp.name, points: bp.points, lastPlay: bp.lastPlay, autoEnabled: true, autoTotal: 0, autoStats: {}};
+          }
+          state.openLog = null;
+          scheduleSave();
+          render();
+        });
+      }
+
+      const delBtn = blockEl.querySelector('button[data-action="clear"]');
+      if (delBtn){
+        delBtn.addEventListener('click', () => {
+          const p = state.data[league].starters[idx];
+          p.name = ''; p.points = ''; p.lastPlay = ''; p.autoEnabled = true; p.autoTotal = 0; p.autoStats = {};
+          scheduleSave();
+          render();
+        });
+      }
+      const rmBtn = blockEl.querySelector('button[data-action="remove-bench"]');
+      if (rmBtn){
+        rmBtn.addEventListener('click', () => {
+          state.data[league].bench.splice(idx, 1);
+          scheduleSave();
+          render();
+        });
+      }
+
+      const logBtn = blockEl.querySelector('button[data-action="toggle-log"]');
+      if (logBtn){
+        logBtn.addEventListener('click', () => {
+          const isOpen = state.openLog && state.openLog.league===league && state.openLog.kind===kind && state.openLog.idx===idx;
+          state.openLog = isOpen ? null : {league, kind, idx};
+          render();
+          if (!isOpen){
+            const panel = root.querySelector('.row-block[data-league="'+league+'"][data-kind="'+kind+'"][data-idx="'+idx+'"] .log-note');
+            if (panel) panel.focus();
+          }
+        });
+      }
+
+      const autoBadgeBtn = blockEl.querySelector('button[data-action="toggle-auto"]');
+      if (autoBadgeBtn){
+        autoBadgeBtn.addEventListener('click', () => {
+          list[idx].autoEnabled = list[idx].autoEnabled === false ? true : false;
+          render();
+        });
+      }
+
+      const cancelBtn = blockEl.querySelector('button[data-action="log-cancel"]');
+      if (cancelBtn){ cancelBtn.addEventListener('click', () => { state.openLog = null; render(); }); }
+
+      const submitBtn = blockEl.querySelector('button[data-action="log-submit"]');
+      if (submitBtn){
+        submitBtn.addEventListener('click', () => {
+          const noteInput = blockEl.querySelector('.log-note');
+          const deltaInput = blockEl.querySelector('.log-delta');
+          const tdCheck = blockEl.querySelector('.log-td');
+          let note = (noteInput.value || '').trim();
+          const deltaRaw = deltaInput.value;
+          const delta = deltaRaw === '' ? 0 : parseFloat(deltaRaw);
+          const isTD = tdCheck.checked;
+          if (!note && deltaRaw === ''){ state.openLog = null; render(); return; }
+          if (!note) note = (delta >= 0 ? '+' : '') + delta;
+          else if (!/^[+\-]/.test(note)) note = '+' + note;
+
+          const p = list[idx];
+          if (kind === 'starter' && SKILL_SLOTS.includes(p.slot)) p.autoEnabled = false;
+          if (!isNaN(delta) && delta !== 0){
+            const current = parseFloat(p.points) || 0;
+            p.points = (Math.round((current + delta) * 100) / 100).toString();
+          }
+          p.lastPlay = note;
+          state.openLog = null;
+          scheduleSave();
+          render();
+
+          const flashEl = root.querySelector('.row-block[data-league="'+league+'"][data-kind="'+kind+'"][data-idx="'+idx+'"]');
+          if (flashEl){
+            flashEl.classList.add('flash');
+            setTimeout(()=>flashEl.classList.remove('flash'), 1300);
+            const lp = flashEl.querySelector('.last-play');
+            if (lp){ lp.classList.add('pop'); setTimeout(()=>lp.classList.remove('pop'), 500); }
+          }
+          bumpTotals(league, true);
+          if (isTD) triggerTouchdown(p.name || 'Your player', delta);
+        });
+      }
+    });
+
+    const addBenchBtn = root.querySelector('button[data-action="add-bench"]');
+    if (addBenchBtn){
+      addBenchBtn.addEventListener('click', () => {
+        state.data[state.activeTab].bench.push({name:'', points:'', lastPlay:''});
+        scheduleSave();
+        render();
+      });
+    }
+
+    const cloneBtn = root.querySelector('#clone-btn');
+    cloneBtn.addEventListener('click', async () => {
+      const nextWeek = state.week + 1;
+      const cloned = JSON.parse(JSON.stringify(state.data));
+      ['espn','yahoo'].forEach(lg => {
+        cloned[lg].starters.forEach(p => { p.points = ''; p.lastPlay = ''; p.autoEnabled = true; p.autoTotal = 0; p.autoStats = {}; });
+        cloned[lg].bench.forEach(p => { p.points = ''; p.lastPlay = ''; });
+      });
+      await window.storage.set(weekKey(nextWeek), JSON.stringify(cloned), false);
+      state.week = nextWeek;
+      state.data = cloned;
+      state.openLog = null;
+      render();
+    });
+
+    const overlay = root.querySelector('.td-overlay');
+    if (overlay) overlay.addEventListener('click', () => hideTouchdown());
+  }
+
+  function bumpTotals(league, bump){
+    const totalEl = root.querySelector('.sb-card[data-card="'+league+'"] .league-total');
+    const subEl = root.querySelector('.sb-card[data-card="'+league+'"] .league-sub');
+    const cardEl = root.querySelector('.sb-card[data-card="'+league+'"]');
+    if (totalEl) totalEl.textContent = total(league).toFixed(2);
+    if (subEl) subEl.textContent = `${startersFilled(league)}/${state.data[league].starters.length} starters set`;
+    if (bump && cardEl){ cardEl.classList.add('bump'); setTimeout(()=>cardEl.classList.remove('bump'), 500); }
+  }
+
+  function updateAutoStatusDOM(){
+    const el = root.querySelector('.auto-status');
+    if (el) el.textContent = state.autoError ? state.autoError : state.autoStatus;
+  }
+
+  function updatePlayerDOM(league, kind, idx, p){
+    const block = root.querySelector(`.row-block[data-league="${league}"][data-kind="${kind}"][data-idx="${idx}"]`);
+    if (!block) return;
+    const ptsInput = block.querySelector('.pts-input');
+    if (ptsInput) ptsInput.value = p.points;
+    const lastPlayEl = block.querySelector('.last-play');
+    if (lastPlayEl){
+      lastPlayEl.textContent = p.lastPlay || '—';
+      lastPlayEl.classList.remove('empty');
+      lastPlayEl.classList.add('pop');
+      setTimeout(()=>lastPlayEl.classList.remove('pop'), 500);
+    }
+    block.classList.add('flash');
+    setTimeout(()=>block.classList.remove('flash'), 1300);
+  }
+
+  let tdTimer = null;
+  function triggerTouchdown(name, delta){
+    const overlay = root.querySelector('.td-overlay');
+    if (!overlay) return;
+    overlay.querySelector('.td-player').textContent = name;
+    const d = Number(delta);
+    overlay.querySelector('.td-points').textContent = (isNaN(d) || d === 0) ? 'Touchdown!' : ((d >= 0 ? '+' : '') + d.toFixed(1) + ' pts');
+    const layer = overlay.querySelector('.confetti-layer');
+    layer.innerHTML = '';
+    const colors = ['#57A96F','#E3A23C','#ECEAE3','#E35D5D','#4C9EE3'];
+    for (let i=0;i<44;i++){
+      const piece = document.createElement('div');
+      piece.className = 'confetti-piece';
+      const w = 5 + Math.random()*5, h = 9 + Math.random()*7;
+      piece.style.width = w+'px'; piece.style.height = h+'px';
+      piece.style.left = (Math.random()*100)+'%';
+      piece.style.background = colors[Math.floor(Math.random()*colors.length)];
+      const dur = 1.4 + Math.random()*1.2, delay = Math.random()*0.3;
+      piece.style.animation = `confetti-fall ${dur}s ease-in ${delay}s forwards`;
+      layer.appendChild(piece);
+    }
+    overlay.classList.add('show');
+    clearTimeout(tdTimer);
+    tdTimer = setTimeout(() => hideTouchdown(), 2800);
+  }
+  function hideTouchdown(){
+    const overlay = root.querySelector('.td-overlay');
+    if (overlay) overlay.classList.remove('show');
+    clearTimeout(tdTimer);
+  }
+
+  // ---------- Live auto-poll (real NFL box scores, public ESPN scoreboard/summary endpoints) ----------
+  function normalizeName(n){
+    return String(n||'').toLowerCase().replace(/[.']/g,'').replace(/\b(jr|sr|ii|iii|iv|v)\b/g,'').replace(/\s+/g,' ').trim();
+  }
+  function lastNameInitial(n){
+    const parts = normalizeName(n).split(' ').filter(Boolean);
+    if (!parts.length) return null;
+    return { initial: parts[0][0], last: parts[parts.length-1] };
+  }
+  function namesMatch(rosterName, statName){
+    const a = lastNameInitial(rosterName), b = lastNameInitial(statName);
+    if (!a || !b) return false;
+    return a.initial === b.initial && a.last === b.last;
+  }
+  function calcPoints(s, scoring){
+    let pts = 0;
+    pts += (s.passYds||0) * 0.04;
+    pts += (s.passTD||0) * 4;
+    pts += (s.int||0) * -2;
+    pts += (s.rushYds||0) * 0.1;
+    pts += (s.rushTD||0) * 6;
+    pts += (s.recYds||0) * 0.1;
+    pts += (s.recTD||0) * 6;
+    pts += (s.rec||0) * (scoring === 'half-ppr' ? 0.5 : 0);
+    pts += (s.fumLost||0) * -2;
+    return Math.round(pts * 100) / 100;
+  }
+  function describeDelta(oldS, newS){
+    oldS = oldS || {};
+    const d = {
+      rushYds: (newS.rushYds||0) - (oldS.rushYds||0),
+      rushTD: (newS.rushTD||0) - (oldS.rushTD||0),
+      recYds: (newS.recYds||0) - (oldS.recYds||0),
+      recTD: (newS.recTD||0) - (oldS.recTD||0),
+      passYds: (newS.passYds||0) - (oldS.passYds||0),
+      passTD: (newS.passTD||0) - (oldS.passTD||0),
+      int: (newS.int||0) - (oldS.int||0),
+    };
+    if (d.recTD > 0) return `+TD catch${d.recYds>0?' ('+d.recYds+'yd)':''}`;
+    if (d.rushTD > 0) return `+TD run${d.rushYds>0?' ('+d.rushYds+'yd)':''}`;
+    if (d.passTD > 0) return `+TD pass`;
+    if (d.recYds > 0) return `+${Math.round(d.recYds)} yd catch`;
+    if (d.rushYds > 0) return `+${Math.round(d.rushYds)} yd run`;
+    if (d.passYds > 0) return `+${Math.round(d.passYds)} yd passing`;
+    if (d.int > 0) return `INT thrown`;
+    return null;
+  }
+
+  async function fetchLiveStatLines(){
+    const sbRes = await fetch('https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard');
+    if (!sbRes.ok) throw new Error('scoreboard fetch failed: ' + sbRes.status);
+    const sb = await sbRes.json();
+    const events = (sb.events || []).filter(e => {
+      const st = e.status && e.status.type && e.status.type.state;
+      return st === 'in' || st === 'post';
+    });
+    const allPlayers = [];
+    for (const ev of events){
+      try {
+        const sumRes = await fetch('https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event=' + ev.id);
+        if (!sumRes.ok) continue;
+        const sum = await sumRes.json();
+        const teams = (sum.boxscore && sum.boxscore.players) || [];
+        teams.forEach(team => {
+          (team.statistics || []).forEach(cat => {
+            const labels = cat.labels || [];
+            const ydsIdx = labels.indexOf('YDS');
+            const tdIdx = labels.indexOf('TD');
+            const intIdx = labels.indexOf('INT');
+            const recIdx = labels.indexOf('REC');
+            const lostIdx = labels.indexOf('LOST');
+            (cat.athletes || []).forEach(a => {
+              const nm = a.athlete && a.athlete.displayName;
+              if (!nm) return;
+              const stats = a.stats || [];
+              const num = (i) => (i >= 0 && stats[i] !== undefined) ? (parseFloat(stats[i]) || 0) : 0;
+              let entry = allPlayers.find(p => p.name === nm);
+              if (!entry){ entry = {name: nm, passYds:0,passTD:0,int:0,rushYds:0,rushTD:0,recYds:0,recTD:0,rec:0,fumLost:0}; allPlayers.push(entry); }
+              if (cat.name === 'passing'){ entry.passYds += num(ydsIdx); entry.passTD += num(tdIdx); entry.int += num(intIdx); }
+              else if (cat.name === 'rushing'){ entry.rushYds += num(ydsIdx); entry.rushTD += num(tdIdx); }
+              else if (cat.name === 'receiving'){ entry.recYds += num(ydsIdx); entry.recTD += num(tdIdx); entry.rec += num(recIdx); }
+              else if (cat.name === 'fumbles'){ entry.fumLost += num(lostIdx); }
+            });
+          });
+        });
+      } catch(err) { /* skip this game, keep going */ }
+    }
+    return allPlayers;
+  }
+
+  async function pollLiveStats(){
+    if (!state.autoOn) return;
+    try {
+      const allPlayers = await fetchLiveStatLines();
+      ['espn','yahoo'].forEach(league => {
+        const scoring = league === 'espn' ? 'half-ppr' : 'standard';
+        state.data[league].starters.forEach((p, idx) => {
+          if (!p.name || !p.name.trim()) return;
+          if (!SKILL_SLOTS.includes(p.slot)) return;
+          if (p.autoEnabled === false) return;
+          const match = allPlayers.find(sp => namesMatch(p.name, sp.name));
+          if (!match) return;
+          const newTotal = calcPoints(match, scoring);
+          const oldStats = p.autoStats || {};
+          const oldTDs = (oldStats.rushTD||0) + (oldStats.recTD||0) + (oldStats.passTD||0);
+          const newTDs = (match.rushTD||0) + (match.recTD||0) + (match.passTD||0);
+          const desc = describeDelta(oldStats, match);
+          const prevTotal = p.autoTotal || 0;
+          if (desc || newTotal !== prevTotal){
+            p.autoTotal = newTotal;
+            p.points = newTotal.toFixed(2);
+            if (desc) p.lastPlay = desc;
+            p.autoStats = { passYds:match.passYds, passTD:match.passTD, int:match.int, rushYds:match.rushYds, rushTD:match.rushTD, recYds:match.recYds, recTD:match.recTD, rec:match.rec, fumLost:match.fumLost };
+            scheduleSave();
+            updatePlayerDOM(league, 'starter', idx, p);
+            if (newTDs > oldTDs){
+              triggerTouchdown(p.name, newTotal - prevTotal);
+            }
+          }
+        });
+      });
+      bumpTotals('espn'); bumpTotals('yahoo');
+      state.autoStatus = 'Synced ' + new Date().toLocaleTimeString();
+      state.autoError = null;
+    } catch(err){
+      state.autoError = 'Auto-sync unavailable here (blocked in this preview — works once hosted on your own domain).';
+    }
+    updateAutoStatusDOM();
+  }
+
+  function startAutoInterval(){
+    stopAutoInterval();
+    autoIntervalId = setInterval(pollLiveStats, 15000);
+  }
+  function stopAutoInterval(){
+    if (autoIntervalId) clearInterval(autoIntervalId);
+    autoIntervalId = null;
+  }
+
+  loadWeek(state.week);
+})();
+</script>
+
+</body>
+</html>
