@@ -107,7 +107,27 @@
   @keyframes confetti-fall { 0% { transform: translateY(-10px) rotate(0deg); opacity:1; } 100% { transform: translateY(340px) rotate(680deg); opacity:0; } }
   @keyframes row-flash { 0% { background: rgba(87,169,111,0.35); } 100% { background: transparent; } }
   @keyframes pop-text { 0% { transform: scale(1.6); } 100% { transform: scale(1); } }
-  @keyframes card-bump { 0% { transform: scale(1); } 30% { transform: scale(1.035); } 100% { transform: scale(1); } }
+  #ft-root .live-dot { width:7px; height:7px; border-radius:50%; background:#55606a; display:inline-block; margin-right:6px; vertical-align:middle; }
+  #ft-root .live-dot.active { background: var(--turf-bright); animation: pulse-dot 1.4s ease-in-out infinite; }
+  #ft-root .crown { margin-right:3px; filter: drop-shadow(0 0 3px rgba(227,162,60,0.7)); animation: crown-bob 1.8s ease-in-out infinite; display:inline-block; }
+  #ft-root .temp-badge { margin-left:3px; font-size:12px; }
+  #ft-root .row-block.flash-up { background: rgba(87,169,111,0.18); box-shadow: 0 0 0 1px var(--turf-bright) inset; animation: row-flash-up 1.3s ease; }
+  #ft-root .row-block.flash-down { background: rgba(196,89,63,0.18); box-shadow: 0 0 0 1px var(--danger) inset; animation: row-flash-down 1.3s ease; }
+  #ft-root .proj-line { font-size: 9px; color: var(--text-dim); text-align:right; padding-right:2px; }
+  #ft-root .mvp-section { margin-bottom: 20px; }
+  #ft-root .mvp-cols { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  #ft-root .mvp-col { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  #ft-root .mvp-col-label { font-family:'Barlow Condensed', sans-serif; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); margin-bottom: 6px; }
+  #ft-root .mvp-row { display:flex; align-items:center; gap:6px; padding: 5px 0; border-bottom: 1px solid var(--line); }
+  #ft-root .mvp-row:last-child { border-bottom: none; }
+  #ft-root .mvp-rank { font-size: 15px; width: 18px; flex-shrink:0; }
+  #ft-root .mvp-name { flex:1; font-size: 13px; color: var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #ft-root .mvp-total { font-family:'Barlow Condensed', sans-serif; font-variant-numeric: tabular-nums; font-size: 14px; font-weight:600; color: var(--turf-bright); }
+
+  @keyframes pulse-dot { 0%,100% { box-shadow: 0 0 0 0 rgba(87,169,111,0.55); } 50% { box-shadow: 0 0 0 5px rgba(87,169,111,0); } }
+  @keyframes crown-bob { 0%,100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-2px) rotate(4deg); } }
+  @keyframes row-flash-up { 0% { background: rgba(87,169,111,0.4); } 100% { background: transparent; } }
+  @keyframes row-flash-down { 0% { background: rgba(196,89,63,0.4); } 100% { background: transparent; } }
 </style>
 <script>
 (function(){
@@ -170,16 +190,38 @@
   }
 
   const root = document.getElementById('ft-root');
-  let state = { week: 1, activeTab: 'espn', data: {}, openLog: null, autoOn: false, autoStatus: 'Off', autoError: null };
+  let state = { week: 1, activeTab: 'espn', data: {}, openLog: null, autoOn: false, autoStatus: 'Off', autoError: null, mvpData: null, mvpLoading: false };
   let saveTimer = null;
   let autoIntervalId = null;
 
   function weekKey(w){ return 'roster:week:' + w; }
 
+  function migrateYahoo(data){
+    if (!data || !data.yahoo || !Array.isArray(data.yahoo.starters)) return data;
+    const desiredSlots = ['W/R/T','W/R/T','W/R/T','Q/W/R/T'];
+    const alreadyCorrect = data.yahoo.starters.length === 4 && data.yahoo.starters.every((s,i)=>s.slot===desiredSlots[i]);
+    if (alreadyCorrect) return data;
+    const kept = [];
+    const overflowNames = [];
+    data.yahoo.starters.forEach(s => {
+      if (s.slot === 'W/R/T' || s.slot === 'Q/W/R/T') kept.push(s);
+      else if (s.name && s.name.trim()) overflowNames.push({name: s.name, points: s.points || '', lastPlay: s.lastPlay || ''});
+    });
+    const newStarters = desiredSlots.map(slot => {
+      const idx = kept.findIndex(k => k.slot === slot);
+      if (idx >= 0) return kept.splice(idx, 1)[0];
+      return {slot, name:'', points:'', lastPlay:''};
+    });
+    const leftoverBench = kept.map(k => ({name:k.name, points:k.points||'', lastPlay:k.lastPlay||''})).concat(overflowNames);
+    data.yahoo.starters = newStarters;
+    data.yahoo.bench = (data.yahoo.bench || []).concat(leftoverBench.filter(b => b.name && b.name.trim()));
+    return data;
+  }
+
   async function loadWeek(w){
     try {
       const res = await window.storage.get(weekKey(w), false);
-      state.data = res ? JSON.parse(res.value) : seedData();
+      state.data = res ? migrateYahoo(JSON.parse(res.value)) : seedData();
     } catch(e){
       state.data = seedData();
     }
@@ -227,13 +269,13 @@
         </div>
         <div class="sb-grid">
           <div class="sb-card" data-card="espn">
-            <div class="league-name">${d.espn.label}</div>
-            <div class="league-total">${total('espn').toFixed(2)}</div>
+            <div class="league-name"><span class="live-dot ${state.autoOn?'active':''}"></span>${d.espn.label}</div>
+            <div class="league-total" data-value="${total('espn')}">${total('espn').toFixed(2)}</div>
             <div class="league-sub">${startersFilled('espn')}/${d.espn.starters.length} starters set</div>
           </div>
           <div class="sb-card" data-card="yahoo">
-            <div class="league-name">${d.yahoo.label}</div>
-            <div class="league-total">${total('yahoo').toFixed(2)}</div>
+            <div class="league-name"><span class="live-dot ${state.autoOn?'active':''}"></span>${d.yahoo.label}</div>
+            <div class="league-total" data-value="${total('yahoo')}">${total('yahoo').toFixed(2)}</div>
             <div class="league-sub">${startersFilled('yahoo')}/${d.yahoo.starters.length} starters set</div>
           </div>
         </div>
@@ -248,11 +290,14 @@
       <div class="tabs">
         <div class="tab ${state.activeTab==='espn'?'active':''}" data-tab="espn">ESPN</div>
         <div class="tab ${state.activeTab==='yahoo'?'active':''}" data-tab="yahoo">Yahoo</div>
+        <div class="tab ${state.activeTab==='mvp'?'active':''}" data-tab="mvp">🏆 MVP</div>
       </div>
       <div class="league-body">
-        ${renderLeague(state.activeTab)}
+        ${state.activeTab === 'mvp' ? renderMVPTab() : renderLeague(state.activeTab)}
         <div class="footer-row">
-          <button class="week-btn" id="clone-btn">Copy roster names → next week</button>
+          ${state.activeTab === 'mvp'
+            ? `<button class="week-btn" id="mvp-refresh-btn">Refresh leaderboard</button>`
+            : `<button class="week-btn" id="clone-btn">Copy roster names → next week</button>`}
           <span class="save-note"></span>
         </div>
       </div>
@@ -269,25 +314,112 @@
     attachHandlers();
   }
 
-  function renderLeague(league){
-    const d = state.data[league];
+  function topScorerIdx(league){
+    const starters = state.data[league].starters;
+    let bestIdx = -1, bestVal = -Infinity;
+    starters.forEach((p, i) => {
+      const v = parseFloat(p.points);
+      if (!isNaN(v) && p.name && p.name.trim() && v > bestVal){ bestVal = v; bestIdx = i; }
+    });
+    return bestVal > 0 ? bestIdx : -1;
+  }
+
+  async function computeSeasonStats(){
+    const totals = { espn: {}, yahoo: {} };
+    for (let w = 1; w <= 18; w++){
+      try {
+        const res = await window.storage.get(weekKey(w), false);
+        if (!res) continue;
+        const wd = JSON.parse(res.value);
+        ['espn','yahoo'].forEach(league => {
+          if (!wd[league]) return;
+          const all = [...(wd[league].starters||[]), ...(wd[league].bench||[])];
+          all.forEach(p => {
+            const name = (p.name||'').trim();
+            if (!name) return;
+            const v = parseFloat(p.points);
+            if (isNaN(v)) return;
+            if (!totals[league][name]) totals[league][name] = { total: 0, weeks: 0 };
+            totals[league][name].total += v;
+            totals[league][name].weeks += 1;
+          });
+        });
+      } catch(e) { /* skip unreadable/missing week */ }
+    }
+    const rank = (obj, dir) => Object.entries(obj)
+      .map(([name, d]) => ({ name, total: Math.round(d.total * 100) / 100, weeks: d.weeks }))
+      .sort((a, b) => dir === 'desc' ? b.total - a.total : a.total - b.total)
+      .slice(0, 3);
+    state.mvpData = {
+      espn: { top: rank(totals.espn, 'desc'), bottom: rank(totals.espn, 'asc') },
+      yahoo: { top: rank(totals.yahoo, 'desc'), bottom: rank(totals.yahoo, 'asc') }
+    };
+    state.mvpLoading = false;
+  }
+
+  function renderMVPTab(){
+    if (state.mvpLoading){
+      return `<div class="empty-hint">Crunching season totals across your saved weeks…</div>`;
+    }
+    const d = state.mvpData || { espn:{top:[],bottom:[]}, yahoo:{top:[],bottom:[]} };
+    const medals = ['🥇','🥈','🥉'];
+    const busts = ['📉','🪦','💀'];
+    const renderCol = (label, arr, icons) => `
+      <div class="mvp-col">
+        <div class="mvp-col-label">${label}</div>
+        ${arr.length ? arr.map((p,i)=>`
+          <div class="mvp-row">
+            <span class="mvp-rank">${icons[i]||''}</span>
+            <span class="mvp-name">${escapeAttr(p.name)}</span>
+            <span class="mvp-total">${p.total.toFixed(2)}</span>
+          </div>
+        `).join('') : `<div class="empty-hint">Not enough season data yet.</div>`}
+      </div>`;
     return `
-      <div class="section-label">Starters</div>
-      ${d.starters.map((p,i)=>renderRowBlock(league,'starter',i,p,d)).join('')}
-      <div class="section-label">Bench <button class="add-btn" data-action="add-bench">+ Add player</button></div>
-      ${d.bench.length ? d.bench.map((p,i)=>renderRowBlock(league,'bench',i,p,d)).join('') : `<div class="empty-hint">No bench players added yet.</div>`}
+      <div class="mvp-section">
+        <div class="section-label">🏆 Fantasy MVP Race — top 3 by season points</div>
+        <div class="mvp-cols">
+          ${renderCol('ESPN', d.espn.top, medals)}
+          ${renderCol('Yahoo', d.yahoo.top, medals)}
+        </div>
+      </div>
+      <div class="mvp-section">
+        <div class="section-label">🧊 Bust of the Year — bottom 3 by season points</div>
+        <div class="mvp-cols">
+          ${renderCol('ESPN', d.espn.bottom, busts)}
+          ${renderCol('Yahoo', d.yahoo.bottom, busts)}
+        </div>
+      </div>
     `;
   }
 
-  function renderRowBlock(league, kind, i, p, d){
+  function renderLeague(league){
+    const d = state.data[league];
+    const topIdx = topScorerIdx(league);
+    return `
+      <div class="section-label">Starters</div>
+      ${d.starters.map((p,i)=>renderRowBlock(league,'starter',i,p,d,i===topIdx)).join('')}
+      <div class="section-label">Bench <button class="add-btn" data-action="add-bench">+ Add player</button></div>
+      ${d.bench.length ? d.bench.map((p,i)=>renderRowBlock(league,'bench',i,p,d,false)).join('') : `<div class="empty-hint">No bench players added yet.</div>`}
+    `;
+  }
+
+  function renderRowBlock(league, kind, i, p, d, isTop){
     const isOpen = state.openLog && state.openLog.league===league && state.openLog.kind===kind && state.openLog.idx===i;
     const isSkill = kind === 'starter' && AUTO_SLOTS.includes(p.slot);
     const autoBadge = isSkill ? `<button class="auto-badge ${p.autoEnabled===false?'paused':'on'}" data-action="toggle-auto" title="${p.autoEnabled===false?'Auto-sync paused — tap to resume':'Auto-syncing live stats — tap to pause'}">${p.autoEnabled===false?'⏸':'●'}${p.autoEnabled===false?'PAUSE':'AUTO'}</button>` : `<span></span>`;
+    const crown = (kind === 'starter' && isTop) ? `<span class="crown" title="Top scorer">👑</span>` : '';
+    const pts = parseFloat(p.points), proj = parseFloat(p.proj);
+    let tempBadge = '';
+    if (kind === 'starter' && !isNaN(pts) && !isNaN(proj) && proj > 0){
+      if (pts >= proj * 1.15) tempBadge = `<span class="temp-badge" title="Blowing past projection">🔥</span>`;
+      else if (pts <= proj * 0.85) tempBadge = `<span class="temp-badge" title="Well under projection">🥶</span>`;
+    }
     const rowInner = kind === 'starter' ? `
         <div class="slot-badge">${p.slot}</div>
         <input class="name-input" placeholder="Add player…" value="${escapeAttr(p.name)}" data-field="name">
         <div class="pts-wrap">
-          <div class="last-play ${p.lastPlay ? '' : 'empty'}">${escapeAttr(p.lastPlay || '—')}</div>
+          <div class="last-play ${p.lastPlay ? '' : 'empty'}">${crown}${escapeAttr(p.lastPlay || '—')}${tempBadge}</div>
           <input class="pts-input" placeholder="0.0" inputmode="decimal" value="${escapeAttr(p.points)}" data-field="points">
         </div>
         ${autoBadge}
@@ -317,6 +449,7 @@
         <div class="log-panel">
           <input type="text" class="log-note" placeholder="Play note, e.g. 60 yd catch" value="">
           <input type="number" step="0.1" class="log-delta" placeholder="pts +/-" value="">
+          ${kind === 'starter' ? `<input type="number" step="0.1" class="log-proj" placeholder="proj pts" value="${escapeAttr(p.proj || '')}" title="Set this player's projected points, used for the 🔥/🥶 badge">` : ``}
           <label class="td-check"><input type="checkbox" class="log-td"> 🏈 Touchdown</label>
           <button class="log-submit-btn" data-action="log-submit">Add</button>
           <button class="log-cancel-btn" data-action="log-cancel">Cancel</button>
@@ -339,7 +472,17 @@
     });
 
     root.querySelectorAll('.tab').forEach(t => {
-      t.addEventListener('click', () => { state.activeTab = t.dataset.tab; state.openLog = null; render(); });
+      t.addEventListener('click', () => {
+        state.activeTab = t.dataset.tab;
+        state.openLog = null;
+        if (state.activeTab === 'mvp' && !state.mvpData){
+          state.mvpLoading = true;
+          render();
+          computeSeasonStats().then(render);
+        } else {
+          render();
+        }
+      });
     });
 
     const autoToggle = root.querySelector('#auto-toggle-input');
@@ -459,30 +602,44 @@
         submitBtn.addEventListener('click', () => {
           const noteInput = blockEl.querySelector('.log-note');
           const deltaInput = blockEl.querySelector('.log-delta');
+          const projInput = blockEl.querySelector('.log-proj');
           const tdCheck = blockEl.querySelector('.log-td');
-          let note = (noteInput.value || '').trim();
+          const rawNote = (noteInput.value || '').trim();
           const deltaRaw = deltaInput.value;
           const delta = deltaRaw === '' ? 0 : parseFloat(deltaRaw);
           const isTD = tdCheck.checked;
-          if (!note && deltaRaw === ''){ state.openLog = null; render(); return; }
+          const hasPlayUpdate = rawNote !== '' || deltaRaw !== '';
+
+          const p = list[idx];
+          if (projInput && projInput.value !== '') p.proj = projInput.value;
+
+          if (!hasPlayUpdate){
+            state.openLog = null;
+            scheduleSave();
+            render();
+            return;
+          }
+
+          let note = rawNote;
           if (!note) note = (delta >= 0 ? '+' : '') + delta;
           else if (!/^[+\-]/.test(note)) note = '+' + note;
 
-          const p = list[idx];
           if (kind === 'starter' && AUTO_SLOTS.includes(p.slot)) p.autoEnabled = false;
+          const prevPts = parseFloat(p.points) || 0;
           if (!isNaN(delta) && delta !== 0){
-            const current = parseFloat(p.points) || 0;
-            p.points = (Math.round((current + delta) * 100) / 100).toString();
+            p.points = (Math.round((prevPts + delta) * 100) / 100).toString();
           }
           p.lastPlay = note;
           state.openLog = null;
           scheduleSave();
           render();
 
+          const dir = delta > 0 ? 'up' : (delta < 0 ? 'down' : null);
           const flashEl = root.querySelector('.row-block[data-league="'+league+'"][data-kind="'+kind+'"][data-idx="'+idx+'"]');
           if (flashEl){
-            flashEl.classList.add('flash');
-            setTimeout(()=>flashEl.classList.remove('flash'), 1300);
+            const cls = dir === 'down' ? 'flash-down' : 'flash-up';
+            flashEl.classList.add(cls);
+            setTimeout(()=>flashEl.classList.remove(cls), 1300);
             const lp = flashEl.querySelector('.last-play');
             if (lp){ lp.classList.add('pop'); setTimeout(()=>lp.classList.remove('pop'), 500); }
           }
@@ -502,29 +659,59 @@
     }
 
     const cloneBtn = root.querySelector('#clone-btn');
-    cloneBtn.addEventListener('click', async () => {
-      const nextWeek = state.week + 1;
-      const cloned = JSON.parse(JSON.stringify(state.data));
-      ['espn','yahoo'].forEach(lg => {
-        cloned[lg].starters.forEach(p => { p.points = ''; p.lastPlay = ''; p.autoEnabled = true; p.autoTotal = 0; p.autoStats = {}; });
-        cloned[lg].bench.forEach(p => { p.points = ''; p.lastPlay = ''; });
+    if (cloneBtn){
+      cloneBtn.addEventListener('click', async () => {
+        const nextWeek = state.week + 1;
+        const cloned = JSON.parse(JSON.stringify(state.data));
+        ['espn','yahoo'].forEach(lg => {
+          cloned[lg].starters.forEach(p => { p.points = ''; p.lastPlay = ''; p.autoEnabled = true; p.autoTotal = 0; p.autoStats = {}; });
+          cloned[lg].bench.forEach(p => { p.points = ''; p.lastPlay = ''; });
+        });
+        await window.storage.set(weekKey(nextWeek), JSON.stringify(cloned), false);
+        state.week = nextWeek;
+        state.data = cloned;
+        state.openLog = null;
+        render();
       });
-      await window.storage.set(weekKey(nextWeek), JSON.stringify(cloned), false);
-      state.week = nextWeek;
-      state.data = cloned;
-      state.openLog = null;
-      render();
-    });
+    }
+
+    const mvpRefreshBtn = root.querySelector('#mvp-refresh-btn');
+    if (mvpRefreshBtn){
+      mvpRefreshBtn.addEventListener('click', () => {
+        state.mvpLoading = true;
+        render();
+        computeSeasonStats().then(render);
+      });
+    }
 
     const overlay = root.querySelector('.td-overlay');
     if (overlay) overlay.addEventListener('click', () => hideTouchdown());
+  }
+
+  function animateNumber(el, from, to, duration){
+    if (!el) return;
+    if (Math.abs(to - from) < 0.005){ el.textContent = to.toFixed(2); el.dataset.value = to; return; }
+    const start = performance.now();
+    function tick(now){
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      const val = from + (to - from) * eased;
+      el.textContent = val.toFixed(2);
+      if (t < 1) requestAnimationFrame(tick);
+      else { el.textContent = to.toFixed(2); el.dataset.value = to; }
+    }
+    requestAnimationFrame(tick);
   }
 
   function bumpTotals(league, bump){
     const totalEl = root.querySelector('.sb-card[data-card="'+league+'"] .league-total');
     const subEl = root.querySelector('.sb-card[data-card="'+league+'"] .league-sub');
     const cardEl = root.querySelector('.sb-card[data-card="'+league+'"]');
-    if (totalEl) totalEl.textContent = total(league).toFixed(2);
+    const newVal = total(league);
+    if (totalEl){
+      const fromVal = parseFloat(totalEl.dataset.value || totalEl.textContent) || 0;
+      animateNumber(totalEl, fromVal, newVal, 550);
+    }
     if (subEl) subEl.textContent = `${startersFilled(league)}/${state.data[league].starters.length} starters set`;
     if (bump && cardEl){ cardEl.classList.add('bump'); setTimeout(()=>cardEl.classList.remove('bump'), 500); }
   }
@@ -534,7 +721,7 @@
     if (el) el.textContent = state.autoError ? state.autoError : state.autoStatus;
   }
 
-  function updatePlayerDOM(league, kind, idx, p){
+  function updatePlayerDOM(league, kind, idx, p, prevPoints){
     const block = root.querySelector(`.row-block[data-league="${league}"][data-kind="${kind}"][data-idx="${idx}"]`);
     if (!block) return;
     const ptsInput = block.querySelector('.pts-input');
@@ -546,8 +733,11 @@
       lastPlayEl.classList.add('pop');
       setTimeout(()=>lastPlayEl.classList.remove('pop'), 500);
     }
-    block.classList.add('flash');
-    setTimeout(()=>block.classList.remove('flash'), 1300);
+    const prev = parseFloat(prevPoints) || 0;
+    const now = parseFloat(p.points) || 0;
+    const cls = now < prev ? 'flash-down' : 'flash-up';
+    block.classList.add(cls);
+    setTimeout(()=>block.classList.remove(cls), 1300);
   }
 
   let tdTimer = null;
@@ -798,6 +988,9 @@
     if (!state.autoOn) return;
     try {
       const { players: allPlayers, teams: allTeams } = await fetchLiveStatLines();
+      const oldTotals = { espn: total('espn'), yahoo: total('yahoo') };
+      const changed = []; // {league, idx, dir, isTDEvent, delta, name}
+
       ['espn','yahoo'].forEach(league => {
         const scoring = league === 'espn' ? 'half-ppr' : 'standard';
         state.data[league].starters.forEach((p, idx) => {
@@ -843,15 +1036,29 @@
             p.points = newTotal.toFixed(2);
             if (desc) p.lastPlay = desc;
             p.autoStats = newStats;
-            scheduleSave();
-            updatePlayerDOM(league, 'starter', idx, p);
-            if (isTDEvent){
-              triggerTouchdown(p.name, newTotal - prevTotal);
-            }
+            changed.push({ league, idx, dir: newTotal >= prevTotal ? 'up' : 'down', isTDEvent, delta: newTotal - prevTotal, name: p.name });
           }
         });
       });
-      bumpTotals('espn'); bumpTotals('yahoo');
+
+      if (changed.length){
+        scheduleSave();
+        render();
+        changed.forEach(c => {
+          const el = root.querySelector(`.row-block[data-league="${c.league}"][data-kind="starter"][data-idx="${c.idx}"]`);
+          if (el){
+            const cls = c.dir === 'down' ? 'flash-down' : 'flash-up';
+            el.classList.add(cls);
+            setTimeout(()=>el.classList.remove(cls), 1300);
+          }
+          if (c.isTDEvent) triggerTouchdown(c.name, c.delta);
+        });
+        ['espn','yahoo'].forEach(league => {
+          const totalEl = root.querySelector('.sb-card[data-card="'+league+'"] .league-total');
+          if (totalEl) animateNumber(totalEl, oldTotals[league], total(league), 550);
+        });
+      }
+
       state.autoStatus = 'Synced ' + new Date().toLocaleTimeString();
       state.autoError = null;
     } catch(err){
