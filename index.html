@@ -59,8 +59,8 @@
   #ft-root .section-label:first-child { margin-top: 0; }
   #ft-root .row-block { border-bottom: 1px solid var(--line); border-radius: 8px; transition: background 0.25s, box-shadow 0.25s; }
   #ft-root .row-block.flash { background: rgba(87,169,111,0.14); box-shadow: 0 0 0 1px var(--turf-bright) inset; animation: row-flash 1.3s ease; }
-  #ft-root .row { display:grid; grid-template-columns: 50px 1fr 70px 44px 24px 56px 20px; gap: 5px; align-items:center; padding: 7px 2px; }
-  #ft-root .row.bench-row { grid-template-columns: 1fr 70px 24px 56px 20px; }
+  #ft-root .row { display:grid; grid-template-columns: 46px 20px 1fr 68px 42px 22px 52px 18px; gap: 4px; align-items:center; padding: 7px 2px; }
+  #ft-root .row.bench-row { grid-template-columns: 20px 1fr 68px 22px 52px 18px; }
   #ft-root .slot-badge { font-family:'Barlow Condensed', sans-serif; font-size: 11.5px; text-align:center; background: var(--panel-2); border: 1px solid var(--line); border-radius: 5px; padding: 3px 1px; color: var(--text-dim); }
   #ft-root input.name-input { background: transparent; border: none; color: var(--text); font-size: 13.5px; width: 100%; padding: 4px 2px; font-family: inherit; }
   #ft-root input.name-input::placeholder { color: #55606a; }
@@ -123,6 +123,21 @@
   #ft-root .mvp-rank { font-size: 15px; width: 18px; flex-shrink:0; }
   #ft-root .mvp-name { flex:1; font-size: 13px; color: var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   #ft-root .mvp-total { font-family:'Barlow Condensed', sans-serif; font-variant-numeric: tabular-nums; font-size: 14px; font-weight:600; color: var(--turf-bright); }
+  #ft-root button.injury-badge { width: 18px; height: 20px; border-radius: 4px; border: 1px solid var(--line); background: transparent; color: var(--text-dim); font-size: 8.5px; font-weight: 700; font-family: 'Barlow Condensed', sans-serif; cursor: pointer; padding: 0; line-height:1; }
+  #ft-root button.injury-badge.inj-Q { background: var(--amber); color: #14181B; border-color: var(--amber); }
+  #ft-root button.injury-badge.inj-O { background: #E36B3C; color: #14181B; border-color: #E36B3C; }
+  #ft-root button.injury-badge.inj-IR { background: #8A2F2F; color: #fff; border-color: #8A2F2F; }
+  #ft-root .recap-overlay { position:absolute; inset:0; z-index:998; display:none; align-items:center; justify-content:center; background: rgba(10,14,16,0.55); padding: 20px; }
+  #ft-root .recap-overlay.show { display:flex; }
+  #ft-root .recap-card { background: linear-gradient(160deg,#1E3A29,#14181B); border: 2px solid var(--turf-bright); border-radius: 16px; padding: 22px 24px; width: 100%; max-width: 340px; box-shadow: 0 0 40px rgba(87,169,111,0.4); }
+  #ft-root .recap-title { font-family:'Barlow Condensed', sans-serif; font-size: 20px; font-weight:700; letter-spacing:0.03em; margin-bottom: 4px; }
+  #ft-root .recap-sub { font-size: 12px; color: var(--text-dim); margin-bottom: 14px; }
+  #ft-root .recap-total { font-family:'Barlow Condensed', sans-serif; font-size: 44px; font-weight:700; color: var(--turf-bright); line-height:1; margin-bottom: 14px; }
+  #ft-root .recap-row { display:flex; justify-content:space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.08); font-size: 13px; }
+  #ft-root .recap-row:last-of-type { border-bottom: none; }
+  #ft-root .recap-label { color: var(--text-dim); }
+  #ft-root .recap-value { font-weight: 600; }
+  #ft-root .recap-close-btn { margin-top: 16px; width: 100%; background: var(--panel-2); border: 1px solid var(--line); color: var(--text); border-radius: 8px; padding: 9px; font-size: 13px; cursor:pointer; font-family: inherit; }
 
   @keyframes pulse-dot { 0%,100% { box-shadow: 0 0 0 0 rgba(87,169,111,0.55); } 50% { box-shadow: 0 0 0 5px rgba(87,169,111,0); } }
   @keyframes crown-bob { 0%,100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-2px) rotate(4deg); } }
@@ -190,7 +205,7 @@
   }
 
   const root = document.getElementById('ft-root');
-  let state = { week: 1, activeTab: 'espn', data: {}, openLog: null, autoOn: false, autoStatus: 'Off', autoError: null, mvpData: null, mvpLoading: false };
+  let state = { week: 1, activeTab: 'espn', data: {}, openLog: null, autoOn: false, autoStatus: 'Off', autoError: null, mvpData: null, mvpLoading: false, recapOpen: null };
   let saveTimer = null;
   let autoIntervalId = null;
 
@@ -297,9 +312,15 @@
         <div class="footer-row">
           ${state.activeTab === 'mvp'
             ? `<button class="week-btn" id="mvp-refresh-btn">Refresh leaderboard</button>`
-            : `<button class="week-btn" id="clone-btn">Copy roster names → next week</button>`}
+            : `<div style="display:flex; gap:8px;">
+                 <button class="week-btn" id="clone-btn">Copy roster names → next week</button>
+                 <button class="week-btn" id="recap-btn" data-league="${state.activeTab}">📋 Recap</button>
+               </div>`}
           <span class="save-note"></span>
         </div>
+      </div>
+      <div class="recap-overlay ${state.recapOpen ? 'show' : ''}">
+        ${state.recapOpen ? renderRecapCard(state.recapOpen.league) : ''}
       </div>
       <div class="td-overlay">
         <div class="confetti-layer"></div>
@@ -326,6 +347,7 @@
 
   async function computeSeasonStats(){
     const totals = { espn: {}, yahoo: {} };
+    const trend = { espn: [], yahoo: [] };
     for (let w = 1; w <= 18; w++){
       try {
         const res = await window.storage.get(weekKey(w), false);
@@ -333,6 +355,13 @@
         const wd = JSON.parse(res.value);
         ['espn','yahoo'].forEach(league => {
           if (!wd[league]) return;
+          const starterTotal = (wd[league].starters||[]).reduce((sum,p) => {
+            const v = parseFloat(p.points);
+            return sum + (isNaN(v) ? 0 : v);
+          }, 0);
+          const anyFilled = (wd[league].starters||[]).some(p => p.name && p.name.trim() && p.points !== '');
+          if (anyFilled) trend[league].push({ week: w, total: Math.round(starterTotal * 100) / 100 });
+
           const all = [...(wd[league].starters||[]), ...(wd[league].bench||[])];
           all.forEach(p => {
             const name = (p.name||'').trim();
@@ -352,16 +381,79 @@
       .slice(0, 3);
     state.mvpData = {
       espn: { top: rank(totals.espn, 'desc'), bottom: rank(totals.espn, 'asc') },
-      yahoo: { top: rank(totals.yahoo, 'desc'), bottom: rank(totals.yahoo, 'asc') }
+      yahoo: { top: rank(totals.yahoo, 'desc'), bottom: rank(totals.yahoo, 'asc') },
+      trend
     };
     state.mvpLoading = false;
+  }
+
+  function renderTrendChart(trend){
+    const espnPts = (trend && trend.espn) || [];
+    const yahooPts = (trend && trend.yahoo) || [];
+    if (espnPts.length < 2 && yahooPts.length < 2){
+      return `<div class="empty-hint">Log at least two weeks to see the trend line.</div>`;
+    }
+    const W = 300, H = 120, padL = 28, padR = 10, padT = 10, padB = 18;
+    const allWeeks = [...espnPts, ...yahooPts].map(p => p.week);
+    const allVals = [...espnPts, ...yahooPts].map(p => p.total);
+    const minW = Math.min(...allWeeks), maxW = Math.max(...allWeeks);
+    let minV = Math.min(0, ...allVals), maxV = Math.max(...allVals);
+    if (maxV === minV) maxV = minV + 1;
+    const x = (w) => padL + (maxW === minW ? 0 : (w - minW) / (maxW - minW)) * (W - padL - padR);
+    const y = (v) => (H - padB) - ((v - minV) / (maxV - minV)) * (H - padT - padB);
+    const pathFor = (arr) => arr.length ? arr.map((p,i)=> (i===0?'M':'L') + x(p.week).toFixed(1) + ',' + y(p.total).toFixed(1)).join(' ') : '';
+    const dotsFor = (arr, color) => arr.map(p => `<circle cx="${x(p.week).toFixed(1)}" cy="${y(p.total).toFixed(1)}" r="2.5" fill="${color}"/>`).join('');
+    const weekTicks = [];
+    for (let w = minW; w <= maxW; w++) weekTicks.push(w);
+    const tickEvery = weekTicks.length > 9 ? Math.ceil(weekTicks.length / 9) : 1;
+    const axisLabels = weekTicks.filter((w,i)=> i % tickEvery === 0)
+      .map(w => `<text x="${x(w).toFixed(1)}" y="${H-4}" font-size="7" fill="#9AA3A8" text-anchor="middle">${w}</text>`).join('');
+    return `
+      <svg viewBox="0 0 ${W} ${H}" style="width:100%; height:auto; display:block;">
+        <line x1="${padL}" y1="${(H-padB).toFixed(1)}" x2="${W-padR}" y2="${(H-padB).toFixed(1)}" stroke="#2C3339" stroke-width="1"/>
+        ${axisLabels}
+        ${espnPts.length ? `<path d="${pathFor(espnPts)}" fill="none" stroke="#57A96F" stroke-width="2"/>` : ''}
+        ${espnPts.length ? dotsFor(espnPts, '#57A96F') : ''}
+        ${yahooPts.length ? `<path d="${pathFor(yahooPts)}" fill="none" stroke="#E3A23C" stroke-width="2"/>` : ''}
+        ${yahooPts.length ? dotsFor(yahooPts, '#E3A23C') : ''}
+      </svg>
+      <div style="display:flex; gap:14px; margin-top:6px; font-size:11px; color:var(--text-dim);">
+        <span><span style="display:inline-block;width:9px;height:9px;background:#57A96F;border-radius:2px;margin-right:4px;"></span>ESPN</span>
+        <span><span style="display:inline-block;width:9px;height:9px;background:#E3A23C;border-radius:2px;margin-right:4px;"></span>Yahoo</span>
+      </div>
+    `;
+  }
+
+  function renderRecapCard(league){
+    const d = state.data[league];
+    if (!d) return '';
+    const filled = d.starters.filter(p => p.name && p.name.trim() && p.points !== '' && !isNaN(parseFloat(p.points)));
+    const teamTotal = total(league);
+    let top = null, bust = null;
+    filled.forEach(p => {
+      const v = parseFloat(p.points);
+      if (!top || v > parseFloat(top.points)) top = p;
+      if (!bust || v < parseFloat(bust.points)) bust = p;
+    });
+    const label = league === 'espn' ? 'ESPN · Half-PPR' : 'Yahoo · Standard';
+    return `
+      <div class="recap-card">
+        <div class="recap-title">🏈 Week ${state.week} Recap</div>
+        <div class="recap-sub">${label}</div>
+        <div class="recap-total">${teamTotal.toFixed(2)} <span style="font-size:14px; color:var(--text-dim); font-weight:400;">pts</span></div>
+        <div class="recap-row"><span class="recap-label">🥇 Top scorer</span><span class="recap-value">${top ? escapeAttr(top.name) + ' — ' + parseFloat(top.points).toFixed(2) : '—'}</span></div>
+        <div class="recap-row"><span class="recap-label">🧊 Biggest bust</span><span class="recap-value">${bust ? escapeAttr(bust.name) + ' — ' + parseFloat(bust.points).toFixed(2) : '—'}</span></div>
+        <div class="recap-row"><span class="recap-label">Starters set</span><span class="recap-value">${startersFilled(league)}/${d.starters.length}</span></div>
+        <button class="recap-close-btn" data-action="recap-close">Close</button>
+      </div>
+    `;
   }
 
   function renderMVPTab(){
     if (state.mvpLoading){
       return `<div class="empty-hint">Crunching season totals across your saved weeks…</div>`;
     }
-    const d = state.mvpData || { espn:{top:[],bottom:[]}, yahoo:{top:[],bottom:[]} };
+    const d = state.mvpData || { espn:{top:[],bottom:[]}, yahoo:{top:[],bottom:[]}, trend:{espn:[],yahoo:[]} };
     const medals = ['🥇','🥈','🥉'];
     const busts = ['📉','🪦','💀'];
     const renderCol = (label, arr, icons) => `
@@ -377,6 +469,12 @@
       </div>`;
     return `
       <div class="mvp-section">
+        <div class="section-label">📈 Season Trend — weekly team points</div>
+        <div class="mvp-col">
+          ${renderTrendChart(d.trend)}
+        </div>
+      </div>
+      <div class="mvp-section">
         <div class="section-label">🏆 Fantasy MVP Race — top 3 by season points</div>
         <div class="mvp-cols">
           ${renderCol('ESPN', d.espn.top, medals)}
@@ -388,6 +486,7 @@
         <div class="mvp-cols">
           ${renderCol('ESPN', d.espn.bottom, busts)}
           ${renderCol('Yahoo', d.yahoo.bottom, busts)}
+
         </div>
       </div>
     `;
@@ -415,8 +514,10 @@
       if (pts >= proj * 1.15) tempBadge = `<span class="temp-badge" title="Blowing past projection">🔥</span>`;
       else if (pts <= proj * 0.85) tempBadge = `<span class="temp-badge" title="Well under projection">🥶</span>`;
     }
+    const injuryBadge = `<button class="injury-badge inj-${p.injury||''}" data-action="cycle-injury" title="Tap to set injury status (None → Q → O → IR)">${p.injury||''}</button>`;
     const rowInner = kind === 'starter' ? `
         <div class="slot-badge">${p.slot}</div>
+        ${injuryBadge}
         <input class="name-input" placeholder="Add player…" value="${escapeAttr(p.name)}" data-field="name">
         <div class="pts-wrap">
           <div class="last-play ${p.lastPlay ? '' : 'empty'}">${crown}${escapeAttr(p.lastPlay || '—')}${tempBadge}</div>
@@ -430,6 +531,7 @@
         </select>
         <button class="del-btn" data-action="clear" title="Clear">×</button>
       ` : `
+        ${injuryBadge}
         <input class="name-input" placeholder="Player name…" value="${escapeAttr(p.name)}" data-field="name">
         <div class="pts-wrap">
           <div class="last-play ${p.lastPlay ? '' : 'empty'}">${escapeAttr(p.lastPlay || '—')}</div>
@@ -594,6 +696,17 @@
         });
       }
 
+      const injuryBtn = blockEl.querySelector('button[data-action="cycle-injury"]');
+      if (injuryBtn){
+        injuryBtn.addEventListener('click', () => {
+          const cycle = ['', 'Q', 'O', 'IR'];
+          const cur = cycle.indexOf(list[idx].injury || '');
+          list[idx].injury = cycle[(cur + 1) % cycle.length];
+          scheduleSave();
+          render();
+        });
+      }
+
       const cancelBtn = blockEl.querySelector('button[data-action="log-cancel"]');
       if (cancelBtn){ cancelBtn.addEventListener('click', () => { state.openLog = null; render(); }); }
 
@@ -682,6 +795,24 @@
         render();
         computeSeasonStats().then(render);
       });
+    }
+
+    const recapBtn = root.querySelector('#recap-btn');
+    if (recapBtn){
+      recapBtn.addEventListener('click', () => {
+        state.recapOpen = { league: recapBtn.dataset.league };
+        render();
+      });
+    }
+    const recapOverlay = root.querySelector('.recap-overlay');
+    if (recapOverlay){
+      recapOverlay.addEventListener('click', (e) => {
+        if (e.target === recapOverlay){ state.recapOpen = null; render(); }
+      });
+    }
+    const recapCloseBtn = root.querySelector('button[data-action="recap-close"]');
+    if (recapCloseBtn){
+      recapCloseBtn.addEventListener('click', () => { state.recapOpen = null; render(); });
     }
 
     const overlay = root.querySelector('.td-overlay');
