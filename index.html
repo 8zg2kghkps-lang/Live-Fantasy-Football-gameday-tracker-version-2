@@ -60,7 +60,7 @@
   #ft-root .row-block { border-bottom: 1px solid var(--line); border-radius: 8px; transition: background 0.25s, box-shadow 0.25s; }
   #ft-root .row-block.flash { background: rgba(87,169,111,0.14); box-shadow: 0 0 0 1px var(--turf-bright) inset; animation: row-flash 1.3s ease; }
   #ft-root .row { display:grid; grid-template-columns: 46px 20px 1fr 68px 42px 22px 52px 18px; gap: 4px; align-items:center; padding: 7px 2px; }
-  #ft-root .row.bench-row { grid-template-columns: 20px 1fr 68px 22px 52px 18px; }
+  #ft-root .row.bench-row { grid-template-columns: 20px 1fr 68px 42px 22px 52px 18px; }
   #ft-root .slot-badge { font-family:'Barlow Condensed', sans-serif; font-size: 11.5px; text-align:center; background: var(--panel-2); border: 1px solid var(--line); border-radius: 5px; padding: 3px 1px; color: var(--text-dim); }
   #ft-root input.name-input { background: transparent; border: none; color: var(--text); font-size: 13.5px; width: 100%; padding: 4px 2px; font-family: inherit; }
   #ft-root input.name-input::placeholder { color: #55606a; }
@@ -111,6 +111,8 @@
   #ft-root .live-dot.active { background: var(--turf-bright); animation: pulse-dot 1.4s ease-in-out infinite; }
   #ft-root .crown { margin-right:3px; filter: drop-shadow(0 0 3px rgba(227,162,60,0.7)); animation: crown-bob 1.8s ease-in-out infinite; display:inline-block; }
   #ft-root .temp-badge { margin-left:3px; font-size:12px; }
+  #ft-root .status-icon { margin-right:3px; font-size:10px; }
+  #ft-root .league-sub2 { font-size: 11px; color: var(--text-dim); margin-top: 1px; }
   #ft-root .row-block.flash-up { background: rgba(87,169,111,0.18); box-shadow: 0 0 0 1px var(--turf-bright) inset; animation: row-flash-up 1.3s ease; }
   #ft-root .row-block.flash-down { background: rgba(196,89,63,0.18); box-shadow: 0 0 0 1px var(--danger) inset; animation: row-flash-down 1.3s ease; }
   #ft-root .proj-line { font-size: 9px; color: var(--text-dim); text-align:right; padding-right:2px; }
@@ -269,6 +271,11 @@
   function startersFilled(league){
     return state.data[league].starters.filter(p => p.name.trim()).length;
   }
+  function notStartedCount(league){
+    const filled = state.data[league].starters.filter(p => p.name && p.name.trim());
+    const notStarted = filled.filter(p => p.gameState !== 'post' && p.gameState !== 'in').length;
+    return { notStarted, filled: filled.length };
+  }
 
   function render(){
     const d = state.data;
@@ -287,11 +294,13 @@
             <div class="league-name"><span class="live-dot ${state.autoOn?'active':''}"></span>${d.espn.label}</div>
             <div class="league-total" data-value="${total('espn')}">${total('espn').toFixed(2)}</div>
             <div class="league-sub">${startersFilled('espn')}/${d.espn.starters.length} starters set</div>
+            <div class="league-sub2">${notStartedCount('espn').notStarted}/${notStartedCount('espn').filled} yet to play</div>
           </div>
           <div class="sb-card" data-card="yahoo">
             <div class="league-name"><span class="live-dot ${state.autoOn?'active':''}"></span>${d.yahoo.label}</div>
             <div class="league-total" data-value="${total('yahoo')}">${total('yahoo').toFixed(2)}</div>
             <div class="league-sub">${startersFilled('yahoo')}/${d.yahoo.starters.length} starters set</div>
+            <div class="league-sub2">${notStartedCount('yahoo').notStarted}/${notStartedCount('yahoo').filled} yet to play</div>
           </div>
         </div>
       </div>
@@ -505,7 +514,7 @@
 
   function renderRowBlock(league, kind, i, p, d, isTop){
     const isOpen = state.openLog && state.openLog.league===league && state.openLog.kind===kind && state.openLog.idx===i;
-    const isSkill = kind === 'starter' && AUTO_SLOTS.includes(p.slot);
+    const isSkill = kind === 'starter' ? AUTO_SLOTS.includes(p.slot) : !!(p.name && p.name.trim());
     const autoBadge = isSkill ? `<button class="auto-badge ${p.autoEnabled===false?'paused':'on'}" data-action="toggle-auto" title="${p.autoEnabled===false?'Auto-sync paused — tap to resume':'Auto-syncing live stats — tap to pause'}">${p.autoEnabled===false?'⏸':'●'}${p.autoEnabled===false?'PAUSE':'AUTO'}</button>` : `<span></span>`;
     const crown = (kind === 'starter' && isTop) ? `<span class="crown" title="Top scorer">👑</span>` : '';
     const pts = parseFloat(p.points), proj = parseFloat(p.proj);
@@ -515,12 +524,18 @@
       else if (pts <= proj * 0.85) tempBadge = `<span class="temp-badge" title="Well under projection">🥶</span>`;
     }
     const injuryBadge = `<button class="injury-badge inj-${p.injury||''}" data-action="cycle-injury" title="Tap to set injury status (None → Q → O → IR)">${p.injury||''}</button>`;
+    let statusIcon = '';
+    if (p.name && p.name.trim()){
+      if (p.gameState === 'post') statusIcon = `<span class="status-icon" title="Game final">✅</span>`;
+      else if (p.gameState === 'in') statusIcon = `<span class="status-icon" title="Game in progress">🟢</span>`;
+      else statusIcon = `<span class="status-icon" title="Game not started yet (or bye)">⏳</span>`;
+    }
     const rowInner = kind === 'starter' ? `
         <div class="slot-badge">${p.slot}</div>
         ${injuryBadge}
         <input class="name-input" placeholder="Add player…" value="${escapeAttr(p.name)}" data-field="name">
         <div class="pts-wrap">
-          <div class="last-play ${p.lastPlay ? '' : 'empty'}">${crown}${escapeAttr(p.lastPlay || '—')}${tempBadge}</div>
+          <div class="last-play ${p.lastPlay ? '' : 'empty'}">${statusIcon}${crown}${escapeAttr(p.lastPlay || '—')}${tempBadge}</div>
           <input class="pts-input" placeholder="0.0" inputmode="decimal" value="${escapeAttr(p.points)}" data-field="points">
         </div>
         ${autoBadge}
@@ -534,9 +549,10 @@
         ${injuryBadge}
         <input class="name-input" placeholder="Player name…" value="${escapeAttr(p.name)}" data-field="name">
         <div class="pts-wrap">
-          <div class="last-play ${p.lastPlay ? '' : 'empty'}">${escapeAttr(p.lastPlay || '—')}</div>
+          <div class="last-play ${p.lastPlay ? '' : 'empty'}">${statusIcon}${escapeAttr(p.lastPlay || '—')}</div>
           <input class="pts-input" placeholder="0.0" inputmode="decimal" value="${escapeAttr(p.points)}" data-field="points">
         </div>
+        ${autoBadge}
         <button class="log-btn" data-action="toggle-log" title="Log a play">⚡</button>
         <select class="move-select" data-field="move">
           <option value="">Move…</option>
@@ -613,6 +629,7 @@
               list[idx].autoTotal = 0;
               list[idx].autoStats = {};
               list[idx].autoEnabled = true;
+              list[idx].gameState = undefined;
               const ptsEl = blockEl.querySelector('.pts-input');
               if (ptsEl) ptsEl.value = '';
               const lpEl = blockEl.querySelector('.last-play');
@@ -622,7 +639,8 @@
             }
           } else {
             list[idx][field] = inp.value;
-            if (field === 'points' && kind === 'starter' && AUTO_SLOTS.includes(list[idx].slot) && list[idx].autoEnabled !== false){
+            const isAutoCandidate = kind === 'starter' ? AUTO_SLOTS.includes(list[idx].slot) : !!(list[idx].name && list[idx].name.trim());
+            if (field === 'points' && isAutoCandidate && list[idx].autoEnabled !== false){
               list[idx].autoEnabled = false;
               const badge = blockEl.querySelector('.auto-badge');
               if (badge){ badge.classList.remove('on'); badge.classList.add('paused'); badge.textContent = '⏸PAUSE'; badge.title = 'Auto-sync paused — tap to resume'; }
@@ -661,7 +679,7 @@
       if (delBtn){
         delBtn.addEventListener('click', () => {
           const p = state.data[league].starters[idx];
-          p.name = ''; p.points = ''; p.lastPlay = ''; p.autoEnabled = true; p.autoTotal = 0; p.autoStats = {};
+          p.name = ''; p.points = ''; p.lastPlay = ''; p.autoEnabled = true; p.autoTotal = 0; p.autoStats = {}; p.gameState = undefined;
           scheduleSave();
           render();
         });
@@ -737,7 +755,8 @@
           if (!note) note = (delta >= 0 ? '+' : '') + delta;
           else if (!/^[+\-]/.test(note)) note = '+' + note;
 
-          if (kind === 'starter' && AUTO_SLOTS.includes(p.slot)) p.autoEnabled = false;
+          const isAutoCandidate = kind === 'starter' ? AUTO_SLOTS.includes(p.slot) : !!(p.name && p.name.trim());
+          if (isAutoCandidate) p.autoEnabled = false;
           const prevPts = parseFloat(p.points) || 0;
           if (!isNaN(delta) && delta !== 0){
             p.points = (Math.round((prevPts + delta) * 100) / 100).toString();
@@ -777,8 +796,8 @@
         const nextWeek = state.week + 1;
         const cloned = JSON.parse(JSON.stringify(state.data));
         ['espn','yahoo'].forEach(lg => {
-          cloned[lg].starters.forEach(p => { p.points = ''; p.lastPlay = ''; p.autoEnabled = true; p.autoTotal = 0; p.autoStats = {}; });
-          cloned[lg].bench.forEach(p => { p.points = ''; p.lastPlay = ''; });
+          cloned[lg].starters.forEach(p => { p.points = ''; p.lastPlay = ''; p.autoEnabled = true; p.autoTotal = 0; p.autoStats = {}; p.gameState = undefined; });
+          cloned[lg].bench.forEach(p => { p.points = ''; p.lastPlay = ''; p.autoEnabled = true; p.autoTotal = 0; p.autoStats = {}; p.gameState = undefined; });
         });
         await window.storage.set(weekKey(nextWeek), JSON.stringify(cloned), false);
         state.week = nextWeek;
@@ -837,6 +856,7 @@
   function bumpTotals(league, bump){
     const totalEl = root.querySelector('.sb-card[data-card="'+league+'"] .league-total');
     const subEl = root.querySelector('.sb-card[data-card="'+league+'"] .league-sub');
+    const sub2El = root.querySelector('.sb-card[data-card="'+league+'"] .league-sub2');
     const cardEl = root.querySelector('.sb-card[data-card="'+league+'"]');
     const newVal = total(league);
     if (totalEl){
@@ -844,6 +864,10 @@
       animateNumber(totalEl, fromVal, newVal, 550);
     }
     if (subEl) subEl.textContent = `${startersFilled(league)}/${state.data[league].starters.length} starters set`;
+    if (sub2El){
+      const ns = notStartedCount(league);
+      sub2El.textContent = `${ns.notStarted}/${ns.filled} yet to play`;
+    }
     if (bump && cardEl){ cardEl.classList.add('bump'); setTimeout(()=>cardEl.classList.remove('bump'), 500); }
   }
 
@@ -1020,6 +1044,7 @@
         const sumRes = await fetch('https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event=' + ev.id);
         if (!sumRes.ok) continue;
         const sum = await sumRes.json();
+        const evState = (ev.status && ev.status.type && ev.status.type.state) || 'in';
 
         // --- team score (points allowed) pairing ---
         const comp = sum.header && sum.header.competitions && sum.header.competitions[0];
@@ -1031,6 +1056,7 @@
             ids.push(tid);
             teamsMap[tid] = teamsMap[tid] || { abbr: c.team.abbreviation, nickname: (c.team.name || c.team.shortDisplayName || '').toLowerCase() };
             teamsMap[tid].scoreFor = parseFloat(c.score) || 0;
+            teamsMap[tid].gameState = evState;
           });
           if (ids.length === 2){
             teamsMap[ids[0]].pointsAllowed = teamsMap[ids[1]].scoreFor;
@@ -1082,6 +1108,7 @@
               const num = (i) => (i >= 0 && stats[i] !== undefined) ? (parseFloat(stats[i]) || 0) : 0;
               let entry = allPlayers.find(p => p.name === nm);
               if (!entry){ entry = {name: nm, passYds:0,passTD:0,int:0,rushYds:0,rushTD:0,recYds:0,recTD:0,rec:0,fumLost:0,fgMake:0,fgAtt:0,fgMiss:0,patMade:0,patAtt:0}; allPlayers.push(entry); }
+              entry.gameState = evState;
               if (cat.name === 'passing'){ entry.passYds += num(ydsIdx); entry.passTD += num(tdIdx); entry.int += num(intIdx); }
               else if (cat.name === 'rushing'){ entry.rushYds += num(ydsIdx); entry.rushTD += num(tdIdx); }
               else if (cat.name === 'receiving'){ entry.recYds += num(ydsIdx); entry.recTD += num(tdIdx); entry.rec += num(recIdx); }
@@ -1115,60 +1142,87 @@
     return { players: allPlayers, teams: Object.values(teamsMap) };
   }
 
+  function processAutoPlayer(p, league, allPlayers, allTeams){
+    if (!p.name || !p.name.trim()) return null;
+    if (p.autoEnabled === false) return null;
+    const slotHint = p.slot || null; // starters have a slot; bench players don't, so we infer
+
+    let newTotal, newStats, desc, isTDEvent = false, gameState = null, matched = false;
+
+    const tryDST = () => {
+      if (league !== 'espn') return false;
+      const nickname = p.name.replace(/\s*D\/ST$/i,'').trim().toLowerCase();
+      if (!nickname) return false;
+      const match = allTeams.find(t => t.nickname && (t.nickname.includes(nickname) || nickname.includes(t.nickname)));
+      if (!match) return false;
+      newTotal = calcDSTPoints(match);
+      desc = describeDeltaDST(p.autoStats || {}, match);
+      newStats = { pointsAllowed: match.pointsAllowed, yardsAllowed: match.yardsAllowed, sacks: match.sacks, int: match.int, fumRec: match.fumRec };
+      gameState = match.gameState;
+      return true;
+    };
+    const tryK = (candidate) => {
+      const match = candidate || allPlayers.find(sp => namesMatch(p.name, sp.name) && (sp.fgAtt > 0 || sp.patAtt > 0));
+      if (!match) return false;
+      newTotal = calcKPoints(match);
+      desc = describeDeltaK(p.autoStats || {}, match);
+      newStats = { patMade: match.patMade, fgMiss: match.fgMiss };
+      gameState = match.gameState;
+      return true;
+    };
+    const trySkill = () => {
+      const match = allPlayers.find(sp => namesMatch(p.name, sp.name));
+      if (!match) return false;
+      newTotal = calcPoints(match, league === 'espn' ? 'half-ppr' : 'standard');
+      const oldStats = p.autoStats || {};
+      const oldTDs = (oldStats.rushTD||0) + (oldStats.recTD||0) + (oldStats.passTD||0);
+      const newTDs = (match.rushTD||0) + (match.recTD||0) + (match.passTD||0);
+      desc = describeDelta(oldStats, match);
+      isTDEvent = newTDs > oldTDs;
+      newStats = { passYds:match.passYds, passTD:match.passTD, int:match.int, rushYds:match.rushYds, rushTD:match.rushTD, recYds:match.recYds, recTD:match.recTD, rec:match.rec, fumLost:match.fumLost };
+      gameState = match.gameState;
+      return true;
+    };
+
+    if (slotHint === 'D/ST') matched = tryDST();
+    else if (slotHint === 'K') matched = tryK();
+    else if (slotHint && SKILL_SLOTS.includes(slotHint)) matched = trySkill();
+    else if (!slotHint){
+      // Bench: position isn't stored, so infer it.
+      if (/D\/ST$/i.test(p.name.trim())) matched = tryDST();
+      if (!matched && league === 'espn'){
+        const kmatch = allPlayers.find(sp => namesMatch(p.name, sp.name) && (sp.fgAtt > 0 || sp.patAtt > 0) && (sp.passYds+sp.rushYds+sp.recYds+sp.passTD+sp.rushTD+sp.recTD === 0));
+        if (kmatch) matched = tryK(kmatch);
+      }
+      if (!matched) matched = trySkill();
+    }
+
+    if (!matched) return null;
+    if (gameState) p.gameState = gameState;
+
+    const prevTotal = p.autoTotal || 0;
+    if (!(desc || newTotal !== prevTotal)) return null;
+
+    p.autoTotal = newTotal;
+    p.points = newTotal.toFixed(2);
+    if (desc) p.lastPlay = desc;
+    p.autoStats = newStats;
+    return { dir: newTotal >= prevTotal ? 'up' : 'down', isTDEvent, delta: newTotal - prevTotal, name: p.name };
+  }
+
   async function pollLiveStats(){
     if (!state.autoOn) return;
     try {
       const { players: allPlayers, teams: allTeams } = await fetchLiveStatLines();
       const oldTotals = { espn: total('espn'), yahoo: total('yahoo') };
-      const changed = []; // {league, idx, dir, isTDEvent, delta, name}
+      const changed = []; // {league, kind, idx, dir, isTDEvent, delta, name}
 
       ['espn','yahoo'].forEach(league => {
-        const scoring = league === 'espn' ? 'half-ppr' : 'standard';
-        state.data[league].starters.forEach((p, idx) => {
-          if (!p.name || !p.name.trim()) return;
-          if (!AUTO_SLOTS.includes(p.slot)) return;
-          if (p.autoEnabled === false) return;
-
-          let newTotal, desc, oldStats, newStats, isTDEvent = false;
-
-          if (SKILL_SLOTS.includes(p.slot)){
-            const match = allPlayers.find(sp => namesMatch(p.name, sp.name));
-            if (!match) return;
-            newTotal = calcPoints(match, scoring);
-            oldStats = p.autoStats || {};
-            const oldTDs = (oldStats.rushTD||0) + (oldStats.recTD||0) + (oldStats.passTD||0);
-            const newTDs = (match.rushTD||0) + (match.recTD||0) + (match.passTD||0);
-            desc = describeDelta(oldStats, match);
-            isTDEvent = newTDs > oldTDs;
-            newStats = { passYds:match.passYds, passTD:match.passTD, int:match.int, rushYds:match.rushYds, rushTD:match.rushTD, recYds:match.recYds, recTD:match.recTD, rec:match.rec, fumLost:match.fumLost };
-          } else if (p.slot === 'D/ST' && league === 'espn'){
-            const nickname = p.name.replace(/\s*D\/ST$/i,'').trim().toLowerCase();
-            if (!nickname) return;
-            const match = allTeams.find(t => t.nickname && (t.nickname.includes(nickname) || nickname.includes(t.nickname)));
-            if (!match) return;
-            newTotal = calcDSTPoints(match);
-            oldStats = p.autoStats || {};
-            desc = describeDeltaDST(oldStats, match);
-            newStats = { pointsAllowed: match.pointsAllowed, yardsAllowed: match.yardsAllowed, sacks: match.sacks, int: match.int, fumRec: match.fumRec };
-          } else if (p.slot === 'K' && league === 'espn'){
-            const match = allPlayers.find(sp => namesMatch(p.name, sp.name) && (sp.fgAtt > 0 || sp.patAtt > 0));
-            if (!match) return;
-            newTotal = calcKPoints(match);
-            oldStats = p.autoStats || {};
-            desc = describeDeltaK(oldStats, match);
-            newStats = { patMade: match.patMade, fgMiss: match.fgMiss };
-          } else {
-            return;
-          }
-
-          const prevTotal = p.autoTotal || 0;
-          if (desc || newTotal !== prevTotal){
-            p.autoTotal = newTotal;
-            p.points = newTotal.toFixed(2);
-            if (desc) p.lastPlay = desc;
-            p.autoStats = newStats;
-            changed.push({ league, idx, dir: newTotal >= prevTotal ? 'up' : 'down', isTDEvent, delta: newTotal - prevTotal, name: p.name });
-          }
+        ['starters','bench'].forEach(kind => {
+          state.data[league][kind].forEach((p, idx) => {
+            const result = processAutoPlayer(p, league, allPlayers, allTeams);
+            if (result) changed.push({ league, kind, idx, ...result });
+          });
         });
       });
 
@@ -1176,7 +1230,7 @@
         scheduleSave();
         render();
         changed.forEach(c => {
-          const el = root.querySelector(`.row-block[data-league="${c.league}"][data-kind="starter"][data-idx="${c.idx}"]`);
+          const el = root.querySelector(`.row-block[data-league="${c.league}"][data-kind="${c.kind}"][data-idx="${c.idx}"]`);
           if (el){
             const cls = c.dir === 'down' ? 'flash-down' : 'flash-up';
             el.classList.add(cls);
