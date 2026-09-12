@@ -260,9 +260,11 @@
     clearTimeout(saveTimer);
     const noteEl = root.querySelector('.save-note');
     if (noteEl) noteEl.textContent = 'Saving…';
+    const weekAtCall = state.week;
+    const snapshotAtCall = JSON.stringify(state.data);
     saveTimer = setTimeout(async () => {
       try {
-        await window.storage.set(weekKey(state.week), JSON.stringify(state.data), false);
+        await window.storage.set(weekKey(weekAtCall), snapshotAtCall, false);
         const n = root.querySelector('.save-note');
         if (n) n.textContent = 'Saved';
       } catch(e){
