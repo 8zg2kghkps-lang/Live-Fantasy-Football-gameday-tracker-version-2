@@ -82,6 +82,7 @@
   #ft-root .log-panel { display:flex; flex-wrap:wrap; gap: 6px; align-items:center; padding: 8px; margin: 0 2px 8px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; }
   #ft-root .log-panel input[type="text"] { flex: 1 1 150px; background: var(--bg); border: 1px solid var(--line); color: var(--text); border-radius: 6px; padding: 6px 8px; font-size: 13px; font-family: inherit; }
   #ft-root .log-panel input[type="number"] { width: 78px; background: var(--bg); border: 1px solid var(--line); color: var(--turf-bright); border-radius: 6px; padding: 6px 8px; font-size: 13px; font-family: inherit; }
+  #ft-root .log-panel select.log-pos { background: var(--bg); border: 1px solid var(--line); color: var(--text); border-radius: 6px; padding: 6px 6px; font-size: 12px; font-family: inherit; }
   #ft-root .td-check { display:flex; align-items:center; gap:4px; font-size: 12px; color: var(--text-dim); white-space:nowrap; }
   #ft-root .log-submit-btn, #ft-root .log-cancel-btn { border-radius: 6px; padding: 6px 10px; font-size: 12px; cursor:pointer; font-family: inherit; border: 1px solid var(--line); }
   #ft-root .log-submit-btn { background: var(--turf); color: #fff; border-color: var(--turf); }
@@ -162,21 +163,26 @@
 
   const SKILL_SLOTS = ['QB','RB','WR','TE','FLEX','W/R/T','Q/W/R/T'];
   const AUTO_SLOTS = SKILL_SLOTS.concat(['D/ST','K']);
+  function inferPosFromSlot(slot){
+    if (slot === 'D/ST') return 'DST';
+    if (['QB','RB','WR','TE','K'].includes(slot)) return slot;
+    return null; // FLEX / W-R-T / Q-W-R-T are ambiguous — needs manual tag
+  }
 
   function seedData(){
     return {
       espn: {
         label: 'ESPN · Half-PPR',
         starters: [
-          {slot:'QB', name:'J. Dart', points:'', lastPlay:''},
-          {slot:'RB', name:'J. Cook III', points:'', lastPlay:''},
-          {slot:'RB', name:'J. Taylor', points:'', lastPlay:''},
-          {slot:'WR', name:'T. Higgins', points:'', lastPlay:''},
-          {slot:'WR', name:'T. McMillan', points:'', lastPlay:''},
-          {slot:'TE', name:'T. McBride', points:'', lastPlay:''},
+          {slot:'QB', name:'J. Dart', points:'', lastPlay:'', pos:'QB'},
+          {slot:'RB', name:'J. Cook III', points:'', lastPlay:'', pos:'RB'},
+          {slot:'RB', name:'J. Taylor', points:'', lastPlay:'', pos:'RB'},
+          {slot:'WR', name:'T. Higgins', points:'', lastPlay:'', pos:'WR'},
+          {slot:'WR', name:'T. McMillan', points:'', lastPlay:'', pos:'WR'},
+          {slot:'TE', name:'T. McBride', points:'', lastPlay:'', pos:'TE'},
           {slot:'FLEX', name:'Q. Judkins', points:'', lastPlay:''},
-          {slot:'D/ST', name:'Jaguars D/ST', points:'', lastPlay:''},
-          {slot:'K', name:'C. Little', points:'', lastPlay:''},
+          {slot:'D/ST', name:'Jaguars D/ST', points:'', lastPlay:'', pos:'DST'},
+          {slot:'K', name:'C. Little', points:'', lastPlay:'', pos:'K'},
         ],
         bench: [
           {name:'J. Coker', points:'', lastPlay:''},
@@ -207,7 +213,11 @@
   }
 
   const root = document.getElementById('ft-root');
-  let state = { week: 1, activeTab: 'espn', data: {}, openLog: null, autoOn: false, autoStatus: 'Off', autoError: null, mvpData: null, mvpLoading: false, recapOpen: null };
+  root.addEventListener('click', function unlockAudioOnce(){
+    ensureAudioCtx();
+    root.removeEventListener('click', unlockAudioOnce);
+  }, { once: true });
+  let state = { week: 1, activeTab: 'espn', data: {}, openLog: null, autoOn: false, autoStatus: 'Off', autoError: null, mvpData: null, mvpLoading: false, recapOpen: null, soundOn: true };
   let saveTimer = null;
   let autoIntervalId = null;
 
@@ -306,6 +316,7 @@
       </div>
       <div class="auto-bar">
         <label class="auto-toggle"><input type="checkbox" id="auto-toggle-input" ${state.autoOn?'checked':''}> ⚡ Live Auto-Update (15s)</label>
+        <button class="week-btn" id="sound-toggle-btn" style="padding:4px 8px; font-size:14px;" title="${state.soundOn ? 'Mute touchdown sound' : 'Unmute touchdown sound'}">${state.soundOn ? '🔊' : '🔇'}</button>
         <span class="auto-status">${state.autoError ? state.autoError : state.autoStatus}</span>
       </div>
       <div class="banner">
@@ -321,15 +332,16 @@
         <div class="footer-row">
           ${state.activeTab === 'mvp'
             ? `<button class="week-btn" id="mvp-refresh-btn">Refresh leaderboard</button>`
-            : `<div style="display:flex; gap:8px;">
+            : `<div style="display:flex; gap:8px; flex-wrap:wrap;">
                  <button class="week-btn" id="clone-btn">Copy roster names → next week</button>
                  <button class="week-btn" id="recap-btn" data-league="${state.activeTab}">📋 Recap</button>
+                 <button class="week-btn" id="optimal-btn" data-league="${state.activeTab}">🧮 Optimal</button>
                </div>`}
           <span class="save-note"></span>
         </div>
       </div>
       <div class="recap-overlay ${state.recapOpen ? 'show' : ''}">
-        ${state.recapOpen ? renderRecapCard(state.recapOpen.league) : ''}
+        ${state.recapOpen ? (state.recapOpen.mode === 'optimal' ? renderOptimalCard(state.recapOpen.league) : renderRecapCard(state.recapOpen.league)) : ''}
       </div>
       <div class="td-overlay">
         <div class="confetti-layer"></div>
@@ -429,6 +441,86 @@
       <div style="display:flex; gap:14px; margin-top:6px; font-size:11px; color:var(--text-dim);">
         <span><span style="display:inline-block;width:9px;height:9px;background:#57A96F;border-radius:2px;margin-right:4px;"></span>ESPN</span>
         <span><span style="display:inline-block;width:9px;height:9px;background:#E3A23C;border-radius:2px;margin-right:4px;"></span>Yahoo</span>
+      </div>
+    `;
+  }
+
+  function slotEligibility(slot){
+    if (slot === 'QB') return ['QB'];
+    if (slot === 'RB') return ['RB'];
+    if (slot === 'WR') return ['WR'];
+    if (slot === 'TE') return ['TE'];
+    if (slot === 'FLEX') return ['RB','WR','TE'];
+    if (slot === 'D/ST') return ['DST'];
+    if (slot === 'K') return ['K'];
+    if (slot === 'W/R/T') return ['RB','WR','TE'];
+    if (slot === 'Q/W/R/T') return ['QB','RB','WR','TE'];
+    return [];
+  }
+
+  function computeOptimalLineup(league){
+    const d = state.data[league];
+    const slots = d.starters.map((s,i) => ({ idx:i, slot:s.slot, eligible: slotEligibility(s.slot) }));
+    const sortedSlots = [...slots].sort((a,b) => a.eligible.length - b.eligible.length);
+
+    const pool = [];
+    let unranked = 0;
+    d.starters.forEach((p) => {
+      if (!p.name || !p.name.trim()) return;
+      if (!p.pos){ unranked++; return; }
+      const v = parseFloat(p.points);
+      pool.push({ name: p.name, pos: p.pos, points: isNaN(v) ? 0 : v });
+    });
+    d.bench.forEach((p) => {
+      if (!p.name || !p.name.trim()) return;
+      if (!p.pos){ unranked++; return; }
+      const v = parseFloat(p.points);
+      pool.push({ name: p.name, pos: p.pos, points: isNaN(v) ? 0 : v });
+    });
+
+    const remaining = [...pool].sort((a,b) => b.points - a.points);
+    const usedNames = new Set();
+    const assignment = {};
+    sortedSlots.forEach(slotInfo => {
+      const pick = remaining.find(p => !usedNames.has(p.name) && slotInfo.eligible.includes(p.pos));
+      if (pick){ assignment[slotInfo.idx] = pick; usedNames.add(pick.name); }
+    });
+
+    const optimalTotal = Object.values(assignment).reduce((s,p) => s + p.points, 0);
+    const actualTotal = total(league);
+
+    const swaps = [];
+    d.starters.forEach((p, i) => {
+      const pick = assignment[i];
+      if (pick && pick.name !== p.name){
+        swaps.push({ slot: p.slot, out: p.name || '(empty)', outPts: parseFloat(p.points) || 0, in: pick.name, inPts: pick.points });
+      }
+    });
+
+    return {
+      optimalTotal: Math.round(optimalTotal * 100) / 100,
+      actualTotal: Math.round(actualTotal * 100) / 100,
+      swaps,
+      unranked
+    };
+  }
+
+  function renderOptimalCard(league){
+    const label = league === 'espn' ? 'ESPN · Half-PPR' : 'Yahoo · Standard';
+    const r = computeOptimalLineup(league);
+    const diff = Math.round((r.optimalTotal - r.actualTotal) * 100) / 100;
+    return `
+      <div class="recap-card">
+        <div class="recap-title">🧮 Optimal Lineup</div>
+        <div class="recap-sub">${label} · Week ${state.week}</div>
+        <div class="recap-total">${r.actualTotal.toFixed(2)} <span style="font-size:14px; color:var(--text-dim); font-weight:400;">actual</span></div>
+        <div class="recap-row"><span class="recap-label">Best possible</span><span class="recap-value">${r.optimalTotal.toFixed(2)} pts</span></div>
+        <div class="recap-row"><span class="recap-label">${diff > 0 ? 'Points left on bench' : 'You nailed it'}</span><span class="recap-value" style="color:${diff>0?'var(--danger)':'var(--turf-bright)'}">${diff > 0 ? '+' + diff.toFixed(2) : '0.00'}</span></div>
+        ${r.swaps.length ? r.swaps.map(s => `
+          <div class="recap-row"><span class="recap-label">${s.slot}</span><span class="recap-value">${escapeAttr(s.out)} (${s.outPts.toFixed(1)}) → ${escapeAttr(s.in)} (${s.inPts.toFixed(1)})</span></div>
+        `).join('') : `<div class="recap-row"><span class="recap-label">Lineup</span><span class="recap-value">Already optimal 🎉</span></div>`}
+        ${r.unranked > 0 ? `<div class="empty-hint" style="margin-top:8px;">${r.unranked} player(s) don't have a position tagged yet, so they can't be checked. Tap ⚡ on them and set Pos.</div>` : ''}
+        <button class="recap-close-btn" data-action="recap-close">Close</button>
       </div>
     `;
   }
@@ -568,6 +660,15 @@
           <input type="text" class="log-note" placeholder="Play note, e.g. 60 yd catch" value="">
           <input type="number" step="0.1" class="log-delta" placeholder="pts +/-" value="">
           ${kind === 'starter' ? `<input type="number" step="0.1" class="log-proj" placeholder="proj pts" value="${escapeAttr(p.proj || '')}" title="Set this player's projected points, used for the 🔥/🥶 badge">` : ``}
+          <select class="log-pos" title="This player's actual position (used by the Optimal Lineup checker)">
+            <option value="" ${!p.pos?'selected':''}>Pos…</option>
+            <option value="QB" ${p.pos==='QB'?'selected':''}>QB</option>
+            <option value="RB" ${p.pos==='RB'?'selected':''}>RB</option>
+            <option value="WR" ${p.pos==='WR'?'selected':''}>WR</option>
+            <option value="TE" ${p.pos==='TE'?'selected':''}>TE</option>
+            <option value="K" ${p.pos==='K'?'selected':''}>K</option>
+            <option value="DST" ${p.pos==='DST'?'selected':''}>D/ST</option>
+          </select>
           <label class="td-check"><input type="checkbox" class="log-td"> 🏈 Touchdown</label>
           <button class="log-submit-btn" data-action="log-submit">Add</button>
           <button class="log-cancel-btn" data-action="log-cancel">Cancel</button>
@@ -606,9 +707,19 @@
     const autoToggle = root.querySelector('#auto-toggle-input');
     if (autoToggle){
       autoToggle.addEventListener('change', () => {
+        ensureAudioCtx();
         state.autoOn = autoToggle.checked;
         if (state.autoOn){ pollLiveStats(); startAutoInterval(); }
         else { stopAutoInterval(); state.autoStatus = 'Off'; state.autoError = null; updateAutoStatusDOM(); }
+      });
+    }
+
+    const soundToggleBtn = root.querySelector('#sound-toggle-btn');
+    if (soundToggleBtn){
+      soundToggleBtn.addEventListener('click', () => {
+        ensureAudioCtx();
+        state.soundOn = !state.soundOn;
+        render();
       });
     }
 
@@ -630,6 +741,7 @@
               list[idx].autoStats = {};
               list[idx].autoEnabled = true;
               list[idx].gameState = undefined;
+              list[idx].pos = kind === 'starter' ? (inferPosFromSlot(list[idx].slot) || undefined) : undefined;
               const ptsEl = blockEl.querySelector('.pts-input');
               if (ptsEl) ptsEl.value = '';
               const lpEl = blockEl.querySelector('.last-play');
@@ -656,18 +768,18 @@
         moveSel.addEventListener('change', () => {
           if (kind === 'starter' && moveSel.value === 'bench'){
             const p = state.data[league].starters[idx];
-            state.data[league].bench.push({name: p.name, points: p.points, lastPlay: p.lastPlay});
+            state.data[league].bench.push({name: p.name, points: p.points, lastPlay: p.lastPlay, pos: p.pos});
             state.data[league].starters[idx] = {slot: p.slot, name: '', points: '', lastPlay: '', autoEnabled: true, autoTotal: 0, autoStats: {}};
           } else if (kind === 'bench' && moveSel.value !== ''){
             const targetIdx = parseInt(moveSel.value, 10);
             const bp = state.data[league].bench[idx];
             const sp = state.data[league].starters[targetIdx];
             if (sp.name.trim()){
-              state.data[league].bench[idx] = {name: sp.name, points: sp.points, lastPlay: sp.lastPlay};
+              state.data[league].bench[idx] = {name: sp.name, points: sp.points, lastPlay: sp.lastPlay, pos: sp.pos};
             } else {
               state.data[league].bench.splice(idx, 1);
             }
-            state.data[league].starters[targetIdx] = {slot: sp.slot, name: bp.name, points: bp.points, lastPlay: bp.lastPlay, autoEnabled: true, autoTotal: 0, autoStats: {}};
+            state.data[league].starters[targetIdx] = {slot: sp.slot, name: bp.name, points: bp.points, lastPlay: bp.lastPlay, autoEnabled: true, autoTotal: 0, autoStats: {}, pos: bp.pos || inferPosFromSlot(sp.slot) || undefined};
           }
           state.openLog = null;
           scheduleSave();
@@ -734,6 +846,7 @@
           const noteInput = blockEl.querySelector('.log-note');
           const deltaInput = blockEl.querySelector('.log-delta');
           const projInput = blockEl.querySelector('.log-proj');
+          const posInput = blockEl.querySelector('.log-pos');
           const tdCheck = blockEl.querySelector('.log-td');
           const rawNote = (noteInput.value || '').trim();
           const deltaRaw = deltaInput.value;
@@ -743,6 +856,7 @@
 
           const p = list[idx];
           if (projInput && projInput.value !== '') p.proj = projInput.value;
+          if (posInput && posInput.value !== '') p.pos = posInput.value;
 
           if (!hasPlayUpdate){
             state.openLog = null;
@@ -819,7 +933,14 @@
     const recapBtn = root.querySelector('#recap-btn');
     if (recapBtn){
       recapBtn.addEventListener('click', () => {
-        state.recapOpen = { league: recapBtn.dataset.league };
+        state.recapOpen = { league: recapBtn.dataset.league, mode: 'recap' };
+        render();
+      });
+    }
+    const optimalBtn = root.querySelector('#optimal-btn');
+    if (optimalBtn){
+      optimalBtn.addEventListener('click', () => {
+        state.recapOpen = { league: optimalBtn.dataset.league, mode: 'optimal' };
         render();
       });
     }
@@ -895,10 +1016,37 @@
     setTimeout(()=>block.classList.remove(cls), 1300);
   }
 
+  let audioCtx = null;
+  function ensureAudioCtx(){
+    if (!audioCtx){
+      try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) { /* no audio support */ }
+    }
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  }
+  function playTDSound(){
+    if (!state.soundOn || !audioCtx) return;
+    const now = audioCtx.currentTime;
+    const notes = [523.25, 659.25, 783.99, 1046.5]; // triumphant little arpeggio
+    notes.forEach((freq, i) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.value = freq;
+      const start = now + i * 0.09;
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(0.28, start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.28);
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start(start);
+      osc.stop(start + 0.32);
+    });
+  }
+
   let tdTimer = null;
   function triggerTouchdown(name, delta){
     const overlay = root.querySelector('.td-overlay');
     if (!overlay) return;
+    playTDSound();
     overlay.querySelector('.td-player').textContent = name;
     const d = Number(delta);
     overlay.querySelector('.td-points').textContent = (isNaN(d) || d === 0) ? 'Touchdown!' : ((d >= 0 ? '+' : '') + d.toFixed(1) + ' pts');
