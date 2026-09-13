@@ -749,7 +749,25 @@
               const lpEl = blockEl.querySelector('.last-play');
               if (lpEl){ lpEl.textContent = '—'; lpEl.classList.add('empty'); }
               const badge = blockEl.querySelector('.auto-badge');
-              if (badge){ badge.classList.remove('paused'); badge.classList.add('on'); badge.textContent = '●AUTO'; badge.title = 'Auto-syncing live stats — tap to pause'; }
+              if (badge){
+                badge.classList.remove('paused'); badge.classList.add('on'); badge.textContent = '●AUTO'; badge.title = 'Auto-syncing live stats — tap to pause';
+              } else if (kind === 'bench'){
+                // A fresh bench row has no badge yet (name was empty) — build one now instead of leaving it invisible.
+                const rowDiv = blockEl.querySelector('.row');
+                const placeholder = rowDiv && rowDiv.children[3];
+                if (placeholder && placeholder.tagName === 'SPAN'){
+                  const newBadge = document.createElement('button');
+                  newBadge.className = 'auto-badge on';
+                  newBadge.setAttribute('data-action', 'toggle-auto');
+                  newBadge.title = 'Auto-syncing live stats — tap to pause';
+                  newBadge.textContent = '●AUTO';
+                  rowDiv.replaceChild(newBadge, placeholder);
+                  newBadge.addEventListener('click', () => {
+                    list[idx].autoEnabled = list[idx].autoEnabled === false ? true : false;
+                    render();
+                  });
+                }
+              }
             }
           } else {
             list[idx][field] = inp.value;
