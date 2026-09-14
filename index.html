@@ -141,6 +141,9 @@
   #ft-root .recap-label { color: var(--text-dim); }
   #ft-root .recap-value { font-weight: 600; }
   #ft-root .recap-close-btn { margin-top: 16px; width: 100%; background: var(--panel-2); border: 1px solid var(--line); color: var(--text); border-radius: 8px; padding: 9px; font-size: 13px; cursor:pointer; font-family: inherit; }
+  #ft-root button.result-toggle { display:block; margin-bottom: 12px; border-radius: 8px; padding: 7px 14px; font-size: 13px; font-weight: 700; font-family: 'Barlow Condensed', sans-serif; letter-spacing: 0.03em; cursor:pointer; border: 1px solid var(--line); background: var(--panel-2); color: var(--text-dim); }
+  #ft-root button.result-toggle.result-W { background: rgba(87,169,111,0.18); border-color: var(--turf-bright); color: var(--turf-bright); }
+  #ft-root button.result-toggle.result-L { background: rgba(196,89,63,0.18); border-color: var(--danger); color: var(--danger); }
 
   @keyframes pulse-dot { 0%,100% { box-shadow: 0 0 0 0 rgba(87,169,111,0.55); } 50% { box-shadow: 0 0 0 5px rgba(87,169,111,0); } }
   @keyframes crown-bob { 0%,100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-2px) rotate(4deg); } }
@@ -371,6 +374,7 @@
   async function computeSeasonStats(){
     const totals = { espn: {}, yahoo: {} };
     const trend = { espn: [], yahoo: [] };
+    const record = { espn: { w: 0, l: 0 }, yahoo: { w: 0, l: 0 } };
     for (let w = 1; w <= 18; w++){
       try {
         const res = await window.storage.get(weekKey(w), false);
@@ -378,6 +382,8 @@
         const wd = JSON.parse(res.value);
         ['espn','yahoo'].forEach(league => {
           if (!wd[league]) return;
+          if (wd[league].result === 'W') record[league].w++;
+          else if (wd[league].result === 'L') record[league].l++;
           const starterTotal = (wd[league].starters||[]).reduce((sum,p) => {
             const v = parseFloat(p.points);
             return sum + (isNaN(v) ? 0 : v);
@@ -405,7 +411,8 @@
     state.mvpData = {
       espn: { top: rank(totals.espn, 'desc'), bottom: rank(totals.espn, 'asc') },
       yahoo: { top: rank(totals.yahoo, 'desc'), bottom: rank(totals.yahoo, 'asc') },
-      trend
+      trend,
+      record
     };
     state.mvpLoading = false;
   }
@@ -539,10 +546,13 @@
       if (!bust || v < parseFloat(bust.points)) bust = p;
     });
     const label = league === 'espn' ? 'ESPN · Half-PPR' : 'Yahoo · Standard';
+    const result = d.result || '';
+    const resultLabel = result === 'W' ? '✅ WIN' : result === 'L' ? '❌ LOSS' : '⚪ Set result';
     return `
       <div class="recap-card">
         <div class="recap-title">🏈 Week ${state.week} Recap</div>
         <div class="recap-sub">${label}</div>
+        <button class="result-toggle result-${result || 'none'}" data-action="toggle-result" data-league="${league}">${resultLabel}</button>
         <div class="recap-total">${teamTotal.toFixed(2)} <span style="font-size:14px; color:var(--text-dim); font-weight:400;">pts</span></div>
         <div class="recap-row"><span class="recap-label">🥇 Top scorer</span><span class="recap-value">${top ? escapeAttr(top.name) + ' — ' + parseFloat(top.points).toFixed(2) : '—'}</span></div>
         <div class="recap-row"><span class="recap-label">🧊 Biggest bust</span><span class="recap-value">${bust ? escapeAttr(bust.name) + ' — ' + parseFloat(bust.points).toFixed(2) : '—'}</span></div>
@@ -556,7 +566,7 @@
     if (state.mvpLoading){
       return `<div class="empty-hint">Crunching season totals across your saved weeks…</div>`;
     }
-    const d = state.mvpData || { espn:{top:[],bottom:[]}, yahoo:{top:[],bottom:[]}, trend:{espn:[],yahoo:[]} };
+    const d = state.mvpData || { espn:{top:[],bottom:[]}, yahoo:{top:[],bottom:[]}, trend:{espn:[],yahoo:[]}, record:{espn:{w:0,l:0},yahoo:{w:0,l:0}} };
     const medals = ['🥇','🥈','🥉'];
     const busts = ['📉','🪦','💀'];
     const renderCol = (label, arr, icons) => `
@@ -573,6 +583,10 @@
     return `
       <div class="mvp-section">
         <div class="section-label">📈 Season Trend — weekly team points</div>
+        <div style="display:flex; gap:16px; margin-bottom:8px; font-size:12px; color:var(--text-dim);">
+          <span>ESPN record: <b style="color:var(--text);">${d.record.espn.w}-${d.record.espn.l}</b></span>
+          <span>Yahoo record: <b style="color:var(--text);">${d.record.yahoo.w}-${d.record.yahoo.l}</b></span>
+        </div>
         <div class="mvp-col">
           ${renderTrendChart(d.trend)}
         </div>
@@ -930,6 +944,7 @@
         const nextWeek = state.week + 1;
         const cloned = JSON.parse(JSON.stringify(state.data));
         ['espn','yahoo'].forEach(lg => {
+          cloned[lg].result = '';
           cloned[lg].starters.forEach(p => { p.points = ''; p.lastPlay = ''; p.autoEnabled = true; p.autoTotal = 0; p.autoStats = {}; p.gameState = undefined; });
           cloned[lg].bench.forEach(p => { p.points = ''; p.lastPlay = ''; p.autoEnabled = true; p.autoTotal = 0; p.autoStats = {}; p.gameState = undefined; });
         });
@@ -973,6 +988,17 @@
     const recapCloseBtn = root.querySelector('button[data-action="recap-close"]');
     if (recapCloseBtn){
       recapCloseBtn.addEventListener('click', () => { state.recapOpen = null; render(); });
+    }
+    const resultToggleBtn = root.querySelector('button[data-action="toggle-result"]');
+    if (resultToggleBtn){
+      resultToggleBtn.addEventListener('click', () => {
+        const lg = resultToggleBtn.dataset.league;
+        const cycle = ['', 'W', 'L'];
+        const cur = state.data[lg].result || '';
+        state.data[lg].result = cycle[(cycle.indexOf(cur) + 1) % cycle.length];
+        scheduleSave();
+        render();
+      });
     }
 
     const overlay = root.querySelector('.td-overlay');
