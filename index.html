@@ -132,7 +132,7 @@
   #ft-root button.injury-badge.inj-IR { background: #8A2F2F; color: #fff; border-color: #8A2F2F; }
   #ft-root .recap-overlay { position:absolute; inset:0; z-index:998; display:none; align-items:center; justify-content:center; background: rgba(10,14,16,0.55); padding: 20px; }
   #ft-root .recap-overlay.show { display:flex; }
-  #ft-root .recap-card { background: linear-gradient(160deg,#1E3A29,#14181B); border: 2px solid var(--turf-bright); border-radius: 16px; padding: 22px 24px; width: 100%; max-width: 340px; box-shadow: 0 0 40px rgba(87,169,111,0.4); }
+  #ft-root .recap-card { background: linear-gradient(160deg,#1E3A29,#14181B); border: 2px solid var(--turf-bright); border-radius: 16px; padding: 22px 24px; width: 100%; max-width: 340px; box-shadow: 0 0 40px rgba(87,169,111,0.4); max-height: 85vh; overflow-y: auto; }
   #ft-root .recap-title { font-family:'Barlow Condensed', sans-serif; font-size: 20px; font-weight:700; letter-spacing:0.03em; margin-bottom: 4px; }
   #ft-root .recap-sub { font-size: 12px; color: var(--text-dim); margin-bottom: 14px; }
   #ft-root .recap-total { font-family:'Barlow Condensed', sans-serif; font-size: 44px; font-weight:700; color: var(--turf-bright); line-height:1; margin-bottom: 14px; }
@@ -373,6 +373,7 @@
 
   async function computeSeasonStats(){
     const totals = { espn: {}, yahoo: {} };
+    const benchTotals = { espn: {}, yahoo: {} };
     const trend = { espn: [], yahoo: [] };
     const record = { espn: { w: 0, l: 0 }, yahoo: { w: 0, l: 0 } };
     for (let w = 1; w <= 18; w++){
@@ -401,6 +402,16 @@
             totals[league][name].total += v;
             totals[league][name].weeks += 1;
           });
+
+          (wd[league].bench||[]).forEach(p => {
+            const name = (p.name||'').trim();
+            if (!name) return;
+            const v = parseFloat(p.points);
+            if (isNaN(v)) return;
+            if (!benchTotals[league][name]) benchTotals[league][name] = { total: 0, weeks: 0 };
+            benchTotals[league][name].total += v;
+            benchTotals[league][name].weeks += 1;
+          });
         });
       } catch(e) { /* skip unreadable/missing week */ }
     }
@@ -409,8 +420,8 @@
       .sort((a, b) => dir === 'desc' ? b.total - a.total : a.total - b.total)
       .slice(0, 3);
     state.mvpData = {
-      espn: { top: rank(totals.espn, 'desc'), bottom: rank(totals.espn, 'asc') },
-      yahoo: { top: rank(totals.yahoo, 'desc'), bottom: rank(totals.yahoo, 'asc') },
+      espn: { top: rank(totals.espn, 'desc'), bottom: rank(totals.espn, 'asc'), benchTop: rank(benchTotals.espn, 'desc') },
+      yahoo: { top: rank(totals.yahoo, 'desc'), bottom: rank(totals.yahoo, 'asc'), benchTop: rank(benchTotals.yahoo, 'desc') },
       trend,
       record
     };
@@ -545,9 +556,12 @@
       if (!top || v > parseFloat(top.points)) top = p;
       if (!bust || v < parseFloat(bust.points)) bust = p;
     });
+    const benchFilled = (d.bench||[]).filter(p => p.name && p.name.trim() && p.points !== '' && !isNaN(parseFloat(p.points)));
+    const benchTop3 = [...benchFilled].sort((a,b) => parseFloat(b.points) - parseFloat(a.points)).slice(0, 3);
     const label = league === 'espn' ? 'ESPN · Half-PPR' : 'Yahoo · Standard';
     const result = d.result || '';
     const resultLabel = result === 'W' ? '✅ WIN' : result === 'L' ? '❌ LOSS' : '⚪ Set result';
+    const medals = ['🥇','🥈','🥉'];
     return `
       <div class="recap-card">
         <div class="recap-title">🏈 Week ${state.week} Recap</div>
@@ -557,6 +571,10 @@
         <div class="recap-row"><span class="recap-label">🥇 Top scorer</span><span class="recap-value">${top ? escapeAttr(top.name) + ' — ' + parseFloat(top.points).toFixed(2) : '—'}</span></div>
         <div class="recap-row"><span class="recap-label">🧊 Biggest bust</span><span class="recap-value">${bust ? escapeAttr(bust.name) + ' — ' + parseFloat(bust.points).toFixed(2) : '—'}</span></div>
         <div class="recap-row"><span class="recap-label">Starters set</span><span class="recap-value">${startersFilled(league)}/${d.starters.length}</span></div>
+        ${benchTop3.length ? `
+        <div class="recap-row" style="border-bottom:none; padding-bottom:2px;"><span class="recap-label">🪑 Bench Warmer${benchTop3.length>1?'s':''} of the Week</span></div>
+        ${benchTop3.map((p,i) => `<div class="recap-row" style="padding-top:2px;"><span class="recap-label">${medals[i]} ${escapeAttr(p.name)}</span><span class="recap-value">${parseFloat(p.points).toFixed(2)}</span></div>`).join('')}
+        ` : ''}
         <button class="recap-close-btn" data-action="recap-close">Close</button>
       </div>
     `;
@@ -566,7 +584,7 @@
     if (state.mvpLoading){
       return `<div class="empty-hint">Crunching season totals across your saved weeks…</div>`;
     }
-    const d = state.mvpData || { espn:{top:[],bottom:[]}, yahoo:{top:[],bottom:[]}, trend:{espn:[],yahoo:[]}, record:{espn:{w:0,l:0},yahoo:{w:0,l:0}} };
+    const d = state.mvpData || { espn:{top:[],bottom:[],benchTop:[]}, yahoo:{top:[],bottom:[],benchTop:[]}, trend:{espn:[],yahoo:[]}, record:{espn:{w:0,l:0},yahoo:{w:0,l:0}} };
     const medals = ['🥇','🥈','🥉'];
     const busts = ['📉','🪦','💀'];
     const renderCol = (label, arr, icons) => `
@@ -604,6 +622,13 @@
           ${renderCol('ESPN', d.espn.bottom, busts)}
           ${renderCol('Yahoo', d.yahoo.bottom, busts)}
 
+        </div>
+      </div>
+      <div class="mvp-section">
+        <div class="section-label">🪑 Most Valuable Bench Warmer — top 3 bench points (season)</div>
+        <div class="mvp-cols">
+          ${renderCol('ESPN', d.espn.benchTop, medals)}
+          ${renderCol('Yahoo', d.yahoo.benchTop, medals)}
         </div>
       </div>
     `;
