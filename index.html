@@ -135,7 +135,7 @@
   #ft-root button.injury-badge.inj-IR { background: #8A2F2F; color: #fff; border-color: #8A2F2F; }
   #ft-root .recap-overlay { position:absolute; inset:0; z-index:998; display:none; align-items:center; justify-content:center; background: rgba(10,14,16,0.55); padding: 20px; }
   #ft-root .recap-overlay.show { display:flex; }
-  #ft-root .recap-card { background: linear-gradient(160deg,#1E3A29,#14181B); border: 2px solid var(--turf-bright); border-radius: 16px; padding: 22px 24px; width: 100%; max-width: 340px; box-shadow: 0 0 40px rgba(87,169,111,0.4); max-height: 85vh; overflow-y: auto; }
+  #ft-root .recap-card { background: linear-gradient(160deg,#1E3A29,#14181B); border: 2px solid var(--turf-bright); border-radius: 16px; padding: 22px 24px; width: 100%; max-width: 340px; box-shadow: 0 0 40px rgba(87,169,111,0.4); }
   #ft-root .recap-title { font-family:'Barlow Condensed', sans-serif; font-size: 20px; font-weight:700; letter-spacing:0.03em; margin-bottom: 4px; }
   #ft-root .recap-sub { font-size: 12px; color: var(--text-dim); margin-bottom: 14px; }
   #ft-root .recap-total { font-family:'Barlow Condensed', sans-serif; font-size: 44px; font-weight:700; color: var(--turf-bright); line-height:1; margin-bottom: 14px; }
@@ -751,11 +751,31 @@
 
     const autoToggle = root.querySelector('#auto-toggle-input');
     if (autoToggle){
-      autoToggle.addEventListener('change', () => {
+      autoToggle.addEventListener('change', async () => {
         ensureAudioCtx();
-        state.autoOn = autoToggle.checked;
-        if (state.autoOn){ pollLiveStats(); startAutoInterval(); }
-        else { stopAutoInterval(); state.autoStatus = 'Off'; state.autoError = null; updateAutoStatusDOM(); }
+        if (autoToggle.checked){
+          const actualWeek = await fetchCurrentNFLWeek();
+          if (actualWeek && actualWeek !== state.week){
+            const proceed = confirm(
+              `Heads up: the NFL is currently on Week ${actualWeek}, but you're viewing Week ${state.week}.\n\n` +
+              `Turning on Live Auto-Update now will write live points into Week ${state.week} instead of Week ${actualWeek}.\n\n` +
+              `Tap Cancel to switch to Week ${actualWeek} first, or OK to sync into Week ${state.week} anyway.`
+            );
+            if (!proceed){
+              autoToggle.checked = false;
+              return;
+            }
+          }
+          state.autoOn = true;
+          pollLiveStats();
+          startAutoInterval();
+        } else {
+          state.autoOn = false;
+          stopAutoInterval();
+          state.autoStatus = 'Off';
+          state.autoError = null;
+          updateAutoStatusDOM();
+        }
       });
     }
 
@@ -1259,6 +1279,16 @@
     return null;
   }
 
+  async function fetchCurrentNFLWeek(){
+    try {
+      const res = await fetch('https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard');
+      if (!res.ok) return null;
+      const data = await res.json();
+      const wk = data.week && data.week.number;
+      return (typeof wk === 'number' && wk >= 1 && wk <= 18) ? wk : null;
+    } catch(e){ return null; }
+  }
+
   async function fetchLiveStatLines(){
     const sbRes = await fetch('https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard');
     if (!sbRes.ok) throw new Error('scoreboard fetch failed: ' + sbRes.status);
@@ -1509,7 +1539,13 @@
     autoIntervalId = null;
   }
 
-  loadWeek(state.week);
+  (async () => {
+    try {
+      const wk = await fetchCurrentNFLWeek();
+      if (wk) state.week = wk;
+    } catch(e){ /* fall back to default week */ }
+    loadWeek(state.week);
+  })();
 })();
 </script>
 
