@@ -47,6 +47,9 @@
   #ft-root .sb-card .league-sub { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
   #ft-root .banner { font-size: 12.5px; color: var(--text-dim); background: var(--panel-2); border-bottom: 1px solid var(--line); padding: 9px 20px; line-height: 1.5; }
   #ft-root .banner b { color: var(--amber); font-weight: 600; }
+  #ft-root .banner { padding: 6px 20px; }
+  #ft-root button.banner-toggle { width: 100%; text-align: left; background: none; border: none; color: var(--text-dim); font-size: 12px; font-weight: 600; padding: 3px 0; cursor: pointer; font-family: inherit; }
+  #ft-root .banner-detail { padding-top: 4px; }
   #ft-root .auto-bar { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; padding: 8px 20px; background: var(--panel); border-bottom: 1px solid var(--line); font-size: 12px; }
   #ft-root .auto-toggle { display:flex; align-items:center; gap:6px; color: var(--text); cursor:pointer; font-weight:600; }
   #ft-root .auto-toggle input { accent-color: var(--turf-bright); width:15px; height:15px; }
@@ -220,7 +223,7 @@
     ensureAudioCtx();
     root.removeEventListener('click', unlockAudioOnce);
   }, { once: true });
-  let state = { week: 1, activeTab: 'espn', data: {}, openLog: null, autoOn: false, autoStatus: 'Off', autoError: null, mvpData: null, mvpLoading: false, recapOpen: null, soundOn: true };
+  let state = { week: 1, activeTab: 'espn', data: {}, openLog: null, autoOn: false, autoStatus: 'Off', autoError: null, mvpData: null, mvpLoading: false, recapOpen: null, soundOn: true, showCoverageInfo: false };
   let saveTimer = null;
   let autoIntervalId = null;
 
@@ -325,7 +328,8 @@
         <span class="auto-status">${state.autoError ? state.autoError : state.autoStatus}</span>
       </div>
       <div class="banner">
-        <b>Auto-sync coverage:</b> QB/RB/WR/TE track fully. D/ST auto-tracks points/yards allowed, sacks, INTs &amp; fumble recoveries. K auto-tracks PATs made &amp; missed FGs. Defensive/return TDs, forced fumbles, blocked kicks, safeties, and FG makes by distance aren't in the public feed — log those by hand with ⚡ (TD checkbox included).
+        <button class="banner-toggle" data-action="toggle-coverage-info">ℹ️ Auto-sync coverage ${state.showCoverageInfo ? '▲' : '▼'}</button>
+        ${state.showCoverageInfo ? `<div class="banner-detail"><b>Auto-sync coverage:</b> QB/RB/WR/TE track fully. D/ST auto-tracks points/yards allowed, sacks, INTs &amp; fumble recoveries. K auto-tracks PATs made &amp; missed FGs. Defensive/return TDs, forced fumbles, blocked kicks, safeties, and FG makes by distance aren't in the public feed — log those by hand with ⚡ (TD checkbox included).</div>` : ''}
       </div>
       <div class="tabs">
         <div class="tab ${state.activeTab==='espn'?'active':''}" data-tab="espn">ESPN</div>
@@ -557,11 +561,12 @@
       if (!bust || v < parseFloat(bust.points)) bust = p;
     });
     const benchFilled = (d.bench||[]).filter(p => p.name && p.name.trim() && p.points !== '' && !isNaN(parseFloat(p.points)));
-    const benchTop3 = [...benchFilled].sort((a,b) => parseFloat(b.points) - parseFloat(a.points)).slice(0, 3);
+    const benchMVP = [...benchFilled].sort((a,b) => parseFloat(b.points) - parseFloat(a.points))[0] || null;
+    const optimal = computeOptimalLineup(league);
+    const accuracy = optimal.optimalTotal > 0 ? Math.min(100, Math.round((optimal.actualTotal / optimal.optimalTotal) * 1000) / 10) : null;
     const label = league === 'espn' ? 'ESPN · Half-PPR' : 'Yahoo · Standard';
     const result = d.result || '';
     const resultLabel = result === 'W' ? '✅ WIN' : result === 'L' ? '❌ LOSS' : '⚪ Set result';
-    const medals = ['🥇','🥈','🥉'];
     return `
       <div class="recap-card">
         <div class="recap-title">🏈 Week ${state.week} Recap</div>
@@ -571,10 +576,8 @@
         <div class="recap-row"><span class="recap-label">🥇 Top scorer</span><span class="recap-value">${top ? escapeAttr(top.name) + ' — ' + parseFloat(top.points).toFixed(2) : '—'}</span></div>
         <div class="recap-row"><span class="recap-label">🧊 Biggest bust</span><span class="recap-value">${bust ? escapeAttr(bust.name) + ' — ' + parseFloat(bust.points).toFixed(2) : '—'}</span></div>
         <div class="recap-row"><span class="recap-label">Starters set</span><span class="recap-value">${startersFilled(league)}/${d.starters.length}</span></div>
-        ${benchTop3.length ? `
-        <div class="recap-row" style="border-bottom:none; padding-bottom:2px;"><span class="recap-label">🪑 Bench Warmer${benchTop3.length>1?'s':''} of the Week</span></div>
-        ${benchTop3.map((p,i) => `<div class="recap-row" style="padding-top:2px;"><span class="recap-label">${medals[i]} ${escapeAttr(p.name)}</span><span class="recap-value">${parseFloat(p.points).toFixed(2)}</span></div>`).join('')}
-        ` : ''}
+        <div class="recap-row"><span class="recap-label">🎯 Start/Sit Accuracy</span><span class="recap-value">${accuracy !== null ? accuracy + '%' : '—'}</span></div>
+        ${benchMVP ? `<div class="recap-row"><span class="recap-label">🪑 Bench Warmer of the Week</span><span class="recap-value">${escapeAttr(benchMVP.name)} — ${parseFloat(benchMVP.points).toFixed(2)}</span></div>` : ''}
         <button class="recap-close-btn" data-action="recap-close">Close</button>
       </div>
     `;
@@ -659,7 +662,8 @@
     const injuryBadge = `<button class="injury-badge inj-${p.injury||''}" data-action="cycle-injury" title="Tap to set injury status (None → Q → O → IR)">${p.injury||''}</button>`;
     let statusIcon = '';
     if (p.name && p.name.trim()){
-      if (p.gameState === 'post') statusIcon = `<span class="status-icon" title="Game final">✅</span>`;
+      if (p.redZone && p.gameState === 'in') statusIcon = `<span class="status-icon" title="Red zone!">🚨</span>`;
+      else if (p.gameState === 'post') statusIcon = `<span class="status-icon" title="Game final">✅</span>`;
       else if (p.gameState === 'in') statusIcon = `<span class="status-icon" title="Game in progress">🟢</span>`;
       else statusIcon = `<span class="status-icon" title="Game not started yet (or bye)">⏳</span>`;
     }
@@ -764,6 +768,14 @@
       });
     }
 
+    const coverageToggleBtn = root.querySelector('button[data-action="toggle-coverage-info"]');
+    if (coverageToggleBtn){
+      coverageToggleBtn.addEventListener('click', () => {
+        state.showCoverageInfo = !state.showCoverageInfo;
+        render();
+      });
+    }
+
     root.querySelectorAll('.row-block').forEach(blockEl => {
       const league = blockEl.dataset.league, kind = blockEl.dataset.kind, idx = parseInt(blockEl.dataset.idx, 10);
       const list = getList(league, kind);
@@ -782,6 +794,7 @@
               list[idx].autoStats = {};
               list[idx].autoEnabled = true;
               list[idx].gameState = undefined;
+              list[idx].redZone = false;
               list[idx].pos = kind === 'starter' ? (inferPosFromSlot(list[idx].slot) || undefined) : undefined;
               const ptsEl = blockEl.querySelector('.pts-input');
               if (ptsEl) ptsEl.value = '';
@@ -850,7 +863,7 @@
       if (delBtn){
         delBtn.addEventListener('click', () => {
           const p = state.data[league].starters[idx];
-          p.name = ''; p.points = ''; p.lastPlay = ''; p.autoEnabled = true; p.autoTotal = 0; p.autoStats = {}; p.gameState = undefined;
+          p.name = ''; p.points = ''; p.lastPlay = ''; p.autoEnabled = true; p.autoTotal = 0; p.autoStats = {}; p.gameState = undefined; p.redZone = false;
           scheduleSave();
           render();
         });
@@ -970,8 +983,8 @@
         const cloned = JSON.parse(JSON.stringify(state.data));
         ['espn','yahoo'].forEach(lg => {
           cloned[lg].result = '';
-          cloned[lg].starters.forEach(p => { p.points = ''; p.lastPlay = ''; p.autoEnabled = true; p.autoTotal = 0; p.autoStats = {}; p.gameState = undefined; });
-          cloned[lg].bench.forEach(p => { p.points = ''; p.lastPlay = ''; p.autoEnabled = true; p.autoTotal = 0; p.autoStats = {}; p.gameState = undefined; });
+          cloned[lg].starters.forEach(p => { p.points = ''; p.lastPlay = ''; p.autoEnabled = true; p.autoTotal = 0; p.autoStats = {}; p.gameState = undefined; p.redZone = false; });
+          cloned[lg].bench.forEach(p => { p.points = ''; p.lastPlay = ''; p.autoEnabled = true; p.autoTotal = 0; p.autoStats = {}; p.gameState = undefined; p.redZone = false; });
         });
         await window.storage.set(weekKey(nextWeek), JSON.stringify(cloned), false);
         state.week = nextWeek;
@@ -1273,14 +1286,19 @@
             const tid = c.team && c.team.id;
             if (!tid) return;
             ids.push(tid);
-            teamsMap[tid] = teamsMap[tid] || { abbr: c.team.abbreviation, nickname: (c.team.name || c.team.shortDisplayName || '').toLowerCase() };
+            teamsMap[tid] = teamsMap[tid] || { id: tid, abbr: c.team.abbreviation, nickname: (c.team.name || c.team.shortDisplayName || '').toLowerCase() };
             teamsMap[tid].scoreFor = parseFloat(c.score) || 0;
             teamsMap[tid].gameState = evState;
+            teamsMap[tid].redZone = false;
           });
           if (ids.length === 2){
             teamsMap[ids[0]].pointsAllowed = teamsMap[ids[1]].scoreFor;
             teamsMap[ids[1]].pointsAllowed = teamsMap[ids[0]].scoreFor;
             pairs.push(ids);
+          }
+          const situation = comp.situation;
+          if (situation && situation.isRedZone && situation.possession && teamsMap[situation.possession]){
+            teamsMap[situation.possession].redZone = true;
           }
         }
 
@@ -1289,7 +1307,7 @@
         teamStatsArr.forEach(ts => {
           const tid = ts.team && ts.team.id;
           if (!tid) return;
-          teamsMap[tid] = teamsMap[tid] || { abbr: ts.team.abbreviation, nickname: (ts.team.name || ts.team.shortDisplayName || '').toLowerCase() };
+          teamsMap[tid] = teamsMap[tid] || { id: tid, abbr: ts.team.abbreviation, nickname: (ts.team.name || ts.team.shortDisplayName || '').toLowerCase() };
           const stats = ts.statistics || [];
           const find = (names) => {
             for (const n of names){
@@ -1311,6 +1329,7 @@
         // --- player-level stats (passing/rushing/receiving/fumbles/kicking) ---
         const teams = (sum.boxscore && sum.boxscore.players) || [];
         teams.forEach(team => {
+          const teamId = team.team && team.team.id;
           (team.statistics || []).forEach(cat => {
             const labels = cat.labels || [];
             const ydsIdx = labels.indexOf('YDS');
@@ -1328,6 +1347,7 @@
               let entry = allPlayers.find(p => p.name === nm);
               if (!entry){ entry = {name: nm, passYds:0,passTD:0,int:0,rushYds:0,rushTD:0,recYds:0,recTD:0,rec:0,fumLost:0,fgMake:0,fgAtt:0,fgMiss:0,patMade:0,patAtt:0}; allPlayers.push(entry); }
               entry.gameState = evState;
+              entry.teamId = teamId;
               if (cat.name === 'passing'){ entry.passYds += num(ydsIdx); entry.passTD += num(tdIdx); entry.int += num(intIdx); }
               else if (cat.name === 'rushing'){ entry.rushYds += num(ydsIdx); entry.rushTD += num(tdIdx); }
               else if (cat.name === 'receiving'){ entry.recYds += num(ydsIdx); entry.recTD += num(tdIdx); entry.rec += num(recIdx); }
@@ -1366,7 +1386,7 @@
     if (p.autoEnabled === false) return null;
     const slotHint = p.slot || null; // starters have a slot; bench players don't, so we infer
 
-    let newTotal, newStats, desc, isTDEvent = false, gameState = null, matched = false;
+    let newTotal, newStats, desc, isTDEvent = false, gameState = null, redZoneFlag = false, matched = false;
 
     const tryDST = () => {
       if (league !== 'espn') return false;
@@ -1400,6 +1420,8 @@
       isTDEvent = newTDs > oldTDs;
       newStats = { passYds:match.passYds, passTD:match.passTD, int:match.int, rushYds:match.rushYds, rushTD:match.rushTD, recYds:match.recYds, recTD:match.recTD, rec:match.rec, fumLost:match.fumLost };
       gameState = match.gameState;
+      const teamEntry = match.teamId ? allTeams.find(t => t.id === match.teamId) : null;
+      redZoneFlag = !!(teamEntry && teamEntry.redZone);
       return true;
     };
 
@@ -1417,16 +1439,22 @@
     }
 
     if (!matched) return null;
+    const prevRedZone = !!p.redZone;
     if (gameState) p.gameState = gameState;
+    p.redZone = redZoneFlag;
 
     const prevTotal = p.autoTotal || 0;
-    if (!(desc || newTotal !== prevTotal)) return null;
+    const scoreChanged = !!(desc || newTotal !== prevTotal);
+    const redZoneChanged = prevRedZone !== redZoneFlag;
+    if (!scoreChanged && !redZoneChanged) return null;
 
-    p.autoTotal = newTotal;
-    p.points = newTotal.toFixed(2);
-    if (desc) p.lastPlay = desc;
-    p.autoStats = newStats;
-    return { dir: newTotal >= prevTotal ? 'up' : 'down', isTDEvent, delta: newTotal - prevTotal, name: p.name };
+    if (scoreChanged){
+      p.autoTotal = newTotal;
+      p.points = newTotal.toFixed(2);
+      if (desc) p.lastPlay = desc;
+      p.autoStats = newStats;
+    }
+    return { dir: newTotal >= prevTotal ? 'up' : 'down', isTDEvent, delta: newTotal - prevTotal, name: p.name, redZoneOnly: !scoreChanged };
   }
 
   async function pollLiveStats(){
@@ -1449,6 +1477,7 @@
         scheduleSave();
         render();
         changed.forEach(c => {
+          if (c.redZoneOnly) return;
           const el = root.querySelector(`.row-block[data-league="${c.league}"][data-kind="${c.kind}"][data-idx="${c.idx}"]`);
           if (el){
             const cls = c.dir === 'down' ? 'flash-down' : 'flash-up';
