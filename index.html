@@ -867,8 +867,6 @@
       oppNameInput.addEventListener('input', () => {
         state.data[state.activeTab].opponent.name = oppNameInput.value;
         scheduleSave();
-        const line = root.querySelector('.sb-card[data-card="'+state.activeTab+'"] .matchup-vs');
-        // full re-render not needed for every keystroke on the scoreboard; refresh on blur instead
       });
       oppNameInput.addEventListener('blur', () => { render(); });
     }
@@ -931,7 +929,6 @@
             const oldName = list[idx].name;
             list[idx].name = inp.value;
             if (inp.value.trim() !== oldName.trim()){
-              // New player in this slot — wipe old tracking so points start fresh for them.
               list[idx].points = '';
               list[idx].lastPlay = '';
               list[idx].autoTotal = 0;
@@ -939,6 +936,7 @@
               list[idx].autoEnabled = true;
               list[idx].gameState = undefined;
               list[idx].redZone = false;
+              list[idx].matchedFullName = undefined;
               list[idx].pos = kind === 'starter' ? (inferPosFromSlot(list[idx].slot) || undefined) : undefined;
               const ptsEl = blockEl.querySelector('.pts-input');
               if (ptsEl) ptsEl.value = '';
@@ -948,7 +946,6 @@
               if (badge){
                 badge.classList.remove('paused'); badge.classList.add('on'); badge.textContent = '●AUTO'; badge.title = 'Auto-syncing live stats — tap to pause';
               } else if (kind === 'bench'){
-                // A fresh bench row has no badge yet (name was empty) — build one now instead of leaving it invisible.
                 const rowDiv = blockEl.querySelector('.row');
                 const placeholder = rowDiv && rowDiv.children[3];
                 if (placeholder && placeholder.tagName === 'SPAN'){
@@ -1008,7 +1005,7 @@
       if (delBtn){
         delBtn.addEventListener('click', () => {
           const p = getSide(league, side).starters[idx];
-          p.name = ''; p.points = ''; p.lastPlay = ''; p.autoEnabled = true; p.autoTotal = 0; p.autoStats = {}; p.gameState = undefined; p.redZone = false;
+          p.name = ''; p.points = ''; p.lastPlay = ''; p.autoEnabled = true; p.autoTotal = 0; p.autoStats = {}; p.gameState = undefined; p.redZone = false; p.matchedFullName = undefined;
           scheduleSave();
           render();
         });
@@ -1128,11 +1125,11 @@
         const cloned = JSON.parse(JSON.stringify(state.data));
         ['espn','yahoo'].forEach(lg => {
           cloned[lg].result = '';
-          cloned[lg].starters.forEach(p => { p.points = ''; p.lastPlay = ''; p.autoEnabled = true; p.autoTotal = 0; p.autoStats = {}; p.gameState = undefined; p.redZone = false; });
-          cloned[lg].bench.forEach(p => { p.points = ''; p.lastPlay = ''; p.autoEnabled = true; p.autoTotal = 0; p.autoStats = {}; p.gameState = undefined; p.redZone = false; });
+          cloned[lg].starters.forEach(p => { p.points = ''; p.lastPlay = ''; p.autoEnabled = true; p.autoTotal = 0; p.autoStats = {}; p.gameState = undefined; p.redZone = false; p.matchedFullName = undefined; });
+          cloned[lg].bench.forEach(p => { p.points = ''; p.lastPlay = ''; p.autoEnabled = true; p.autoTotal = 0; p.autoStats = {}; p.gameState = undefined; p.redZone = false; p.matchedFullName = undefined; });
           if (cloned[lg].opponent){
             cloned[lg].opponent.name = '';
-            cloned[lg].opponent.starters.forEach(p => { p.name=''; p.points = ''; p.lastPlay = ''; p.autoEnabled = true; p.autoTotal = 0; p.autoStats = {}; p.gameState = undefined; p.redZone = false; });
+            cloned[lg].opponent.starters.forEach(p => { p.name=''; p.points = ''; p.lastPlay = ''; p.autoEnabled = true; p.autoTotal = 0; p.autoStats = {}; p.gameState = undefined; p.redZone = false; p.matchedFullName = undefined; });
             cloned[lg].opponent.bench = [];
           }
         });
@@ -1227,7 +1224,6 @@
     }
     const matchupEl = root.querySelector('.sb-card[data-card="'+league+'"] .matchup-vs');
     if (matchupEl){
-      const wrap = matchupEl.parentElement;
       matchupEl.outerHTML = renderMatchupLine(league);
     }
     if (bump && cardEl){ cardEl.classList.add('bump'); setTimeout(()=>cardEl.classList.remove('bump'), 500); }
@@ -1267,7 +1263,7 @@
   function playTDSound(){
     if (!state.soundOn || !audioCtx) return;
     const now = audioCtx.currentTime;
-    const notes = [523.25, 659.25, 783.99, 1046.5]; // triumphant little arpeggio
+    const notes = [523.25, 659.25, 783.99, 1046.5];
     notes.forEach((freq, i) => {
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
@@ -1329,21 +1325,25 @@
     if (!a || !b) return false;
     return a.initial === b.initial && a.last === b.last;
   }
-  function calcPoints(s, scoring){
+  const SCORING = {
+    espn:  { passYdsPerPt: 25, passTD: 4, rushYdsPerPt: 10, rushTD: 6, recYdsPerPt: 10, recTD: 6, int: -2, fumLost: -2 },
+    yahoo: { passYdsPerPt: 30, passTD: 3, rushYdsPerPt: 10, rushTD: 6, recYdsPerPt: 10, recTD: 6, int: -2, fumLost: -2 }
+  };
+  function calcPoints(s, league, scoring){
+    const cfg = SCORING[league] || SCORING.espn;
     let pts = 0;
-    pts += (s.passYds||0) * 0.04;
-    pts += (s.passTD||0) * 4;
-    pts += (s.int||0) * -2;
-    pts += (s.rushYds||0) * 0.1;
-    pts += (s.rushTD||0) * 6;
-    pts += (s.recYds||0) * 0.1;
-    pts += (s.recTD||0) * 6;
+    pts += (s.passYds||0) * (1 / cfg.passYdsPerPt);
+    pts += (s.passTD||0) * cfg.passTD;
+    pts += (s.int||0) * cfg.int;
+    pts += (s.rushYds||0) * (1 / cfg.rushYdsPerPt);
+    pts += (s.rushTD||0) * cfg.rushTD;
+    pts += (s.recYds||0) * (1 / cfg.recYdsPerPt);
+    pts += (s.recTD||0) * cfg.recTD;
     pts += (s.rec||0) * (scoring === 'half-ppr' ? 0.5 : 0);
-    pts += (s.fumLost||0) * -2;
+    pts += (s.fumLost||0) * cfg.fumLost;
     return Math.round(pts * 100) / 100;
   }
 
-  // Exact ESPN league scoring (from league Scoring Settings)
   function calcDSTPoints(s){
     let pts = 0;
     const pa = s.pointsAllowed;
@@ -1445,7 +1445,6 @@
         const sum = await sumRes.json();
         const evState = (ev.status && ev.status.type && ev.status.type.state) || 'in';
 
-        // --- team score (points allowed) pairing ---
         const comp = sum.header && sum.header.competitions && sum.header.competitions[0];
         if (comp && comp.competitors && comp.competitors.length === 2){
           const ids = [];
@@ -1469,7 +1468,6 @@
           }
         }
 
-        // --- team-level box score stats (yards, sacks-allowed, turnovers) ---
         const teamStatsArr = (sum.boxscore && sum.boxscore.teams) || [];
         teamStatsArr.forEach(ts => {
           const tid = ts.team && ts.team.id;
@@ -1493,7 +1491,6 @@
           if (fumLost != null) teamsMap[tid].turnoverFum = fumLost;
         });
 
-        // --- player-level stats (passing/rushing/receiving/fumbles/kicking) ---
         const teams = (sum.boxscore && sum.boxscore.players) || [];
         teams.forEach(team => {
           const teamId = team.team && team.team.id;
@@ -1532,7 +1529,6 @@
       } catch(err) { /* skip this game, keep going */ }
     }
 
-    // cross-assign opponent-derived D/ST credit (yards/turnovers allowed by the OTHER team's offense)
     pairs.forEach(([a,b]) => {
       if (!teamsMap[a] || !teamsMap[b]) return;
       teamsMap[a].yardsAllowed = teamsMap[b].ownYards;
@@ -1551,7 +1547,7 @@
   function processAutoPlayer(p, league, allPlayers, allTeams){
     if (!p.name || !p.name.trim()) return null;
     if (p.autoEnabled === false) return null;
-    const slotHint = p.slot || null; // starters have a slot; bench players don't, so we infer
+    const slotHint = p.slot || null;
 
     let newTotal, newStats, desc, isTDEvent = false, gameState = null, redZoneFlag = false, matched = false;
 
@@ -1576,10 +1572,33 @@
       gameState = match.gameState;
       return true;
     };
+    const statSignature = (c) => {
+      if ((c.passYds||0) > 0 || (c.passTD||0) > 0 || (c.int||0) > 0) return 'QB';
+      if ((c.rushYds||0) >= (c.recYds||0) && ((c.rushYds||0) > 0 || (c.rushTD||0) > 0)) return 'RB';
+      if ((c.recYds||0) > 0 || (c.recTD||0) > 0 || (c.rec||0) > 0) return 'WR/TE';
+      return null;
+    };
     const trySkill = () => {
-      const match = allPlayers.find(sp => namesMatch(p.name, sp.name));
-      if (!match) return false;
-      newTotal = calcPoints(match, league === 'espn' ? 'half-ppr' : 'standard');
+      // Pin to the exact same real player once matched, so a later name collision can't hijack this row.
+      if (p.matchedFullName){
+        const pinned = allPlayers.find(sp => sp.name === p.matchedFullName);
+        if (pinned) return finishSkillMatch(pinned);
+      }
+      const candidates = allPlayers.filter(sp => namesMatch(p.name, sp.name));
+      if (!candidates.length) return false;
+      let match = candidates[0];
+      if (candidates.length > 1){
+        // Multiple real players share this initial+surname pattern — use the slot/position to pick the right one.
+        const wantQB = slotHint === 'QB' || slotHint === 'Q/W/R/T';
+        const qbCands = candidates.filter(c => statSignature(c) === 'QB');
+        const nonQbCands = candidates.filter(c => statSignature(c) !== 'QB');
+        if (wantQB && qbCands.length) match = qbCands[0];
+        else if (!wantQB && nonQbCands.length) match = nonQbCands[0];
+      }
+      return finishSkillMatch(match);
+    };
+    function finishSkillMatch(match){
+      newTotal = calcPoints(match, league, league === 'espn' ? 'half-ppr' : 'standard');
       const oldStats = p.autoStats || {};
       const oldTDs = (oldStats.rushTD||0) + (oldStats.recTD||0) + (oldStats.passTD||0);
       const newTDs = (match.rushTD||0) + (match.recTD||0) + (match.passTD||0);
@@ -1587,16 +1606,16 @@
       isTDEvent = newTDs > oldTDs;
       newStats = { passYds:match.passYds, passTD:match.passTD, int:match.int, rushYds:match.rushYds, rushTD:match.rushTD, recYds:match.recYds, recTD:match.recTD, rec:match.rec, fumLost:match.fumLost };
       gameState = match.gameState;
+      p.matchedFullName = match.name;
       const teamEntry = match.teamId ? allTeams.find(t => t.id === match.teamId) : null;
       redZoneFlag = !!(teamEntry && teamEntry.redZone);
       return true;
-    };
+    }
 
     if (slotHint === 'D/ST') matched = tryDST();
     else if (slotHint === 'K') matched = tryK();
     else if (slotHint && SKILL_SLOTS.includes(slotHint)) matched = trySkill();
     else if (!slotHint){
-      // Bench: position isn't stored, so infer it.
       if (/D\/ST$/i.test(p.name.trim())) matched = tryDST();
       if (!matched && league === 'espn'){
         const kmatch = allPlayers.find(sp => namesMatch(p.name, sp.name) && (sp.fgAtt > 0 || sp.patAtt > 0) && (sp.passYds+sp.rushYds+sp.recYds+sp.passTD+sp.rushTD+sp.recTD === 0));
@@ -1629,7 +1648,7 @@
     try {
       const { players: allPlayers, teams: allTeams } = await fetchLiveStatLines();
       const oldTotals = { espn: total('espn'), yahoo: total('yahoo') };
-      const changed = []; // {league, side, kind, idx, dir, isTDEvent, delta, name}
+      const changed = [];
 
       ['espn','yahoo'].forEach(league => {
         ['mine','opp'].forEach(side => {
