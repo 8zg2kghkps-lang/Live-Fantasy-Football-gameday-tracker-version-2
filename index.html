@@ -150,9 +150,57 @@
   #ft-root .side-tabs { display:flex; gap:6px; margin-bottom: 14px; }
   #ft-root button.side-tab { flex:1; background: var(--panel-2); border: 1px solid var(--line); color: var(--text-dim); border-radius: 8px; padding: 8px 4px; font-size: 12.5px; font-weight:700; font-family:'Barlow Condensed', sans-serif; letter-spacing:0.03em; cursor:pointer; }
   #ft-root button.side-tab.active { color: var(--text); border-color: var(--turf-bright); background: rgba(87,169,111,0.14); }
-  #ft-root input.opp-name-input { background: var(--panel-2); border: 1px solid var(--line); color: var(--text); font-family:'Barlow Condensed', sans-serif; font-size: 15px; font-weight:600; border-radius: 6px; padding: 6px 8px; width: 100%; margin-bottom: 10px; }
+
+  #ft-root .matchup-header { background: rgba(0,0,0,0.18); border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-bottom: 16px; }
+  #ft-root .mh-row { display:grid; grid-template-columns: 1fr 40px 1fr; align-items:center; gap: 6px; }
+  #ft-root .mh-team { display:flex; flex-direction:column; gap:4px; }
+  #ft-root .mh-left { align-items:flex-start; }
+  #ft-root .mh-right { align-items:flex-end; }
+  #ft-root .mh-score { font-family:'Barlow Condensed', sans-serif; font-size: 34px; font-weight:700; line-height:1; color: var(--turf-bright); }
+  #ft-root .mh-label { font-size: 11px; color: var(--text-dim); text-transform:uppercase; letter-spacing:0.06em; }
+  #ft-root .mh-vs { text-align:center; font-family:'Barlow Condensed', sans-serif; font-size: 13px; color: var(--text-dim); font-weight:700; }
+  #ft-root input.opp-name-input { background: var(--panel-2); border: 1px solid var(--line); color: var(--text); font-family:'Barlow Condensed', sans-serif; font-size: 12px; font-weight:600; border-radius: 6px; padding: 4px 6px; width: 100%; text-align:right; }
+  #ft-root .mh-winprob { display:flex; align-items:center; gap:8px; margin-top:12px; }
+  #ft-root .mh-pct { font-size: 11px; color: var(--text-dim); font-weight:600; width: 32px; }
+  #ft-root .mh-pct:last-child { text-align:right; }
+  #ft-root .mh-bar { flex:1; height:6px; background: var(--panel-2); border-radius:4px; overflow:hidden; }
+  #ft-root .mh-bar-fill { height:100%; background: var(--turf-bright); }
+
+  #ft-root .pair-row { display:grid; grid-template-columns: 1fr 34px 1fr; gap: 4px; align-items:start; border-bottom: 1px solid var(--line); padding: 6px 0; }
+  #ft-root .slot-mid { display:flex; align-items:center; justify-content:center; align-self:center; font-family:'Barlow Condensed', sans-serif; font-size: 10px; font-weight:700; color: var(--text-dim); background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 4px 1px; min-height: 22px; text-align:center; }
+  #ft-root .slot-mid.bench-mid { background:transparent; border:none; }
+  #ft-root .empty-cell { min-width: 0; }
+  #ft-root .row-block.crow { min-width: 0; }
+  #ft-root .crow-top { display:flex; align-items:center; gap:4px; }
+  #ft-root .crow-top input.name-input { flex:1; min-width: 0; font-size: 12.5px; padding: 3px 2px; }
+  #ft-root .crow-bottom { display:flex; align-items:center; gap:3px; margin-top: 2px; }
+  #ft-root .crow-lastplay { flex:1; min-width:0; font-size: 9px; color: var(--amber); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #ft-root .crow-lastplay.empty { color: #55606a; }
+  #ft-root .crow-lastplay.pop { animation: pop-text 0.5s ease; }
+  #ft-root input.pts-input.pts-input { width: 46px; flex: 0 0 auto; font-size: 13px; padding: 3px 4px; }
+  #ft-root button.auto-badge.crow-auto { width: 20px; height:20px; padding:0; flex:0 0 auto; font-size: 10px; }
+  #ft-root button.log-btn.crow-log { width: 20px; height:20px; padding:0; flex:0 0 auto; font-size: 11px; }
+  #ft-root [data-side="opp"] .crow-top { flex-direction: row-reverse; }
+  #ft-root [data-side="opp"] .crow-top input.name-input { text-align:right; }
+  #ft-root [data-side="opp"] .crow-bottom { flex-direction: row-reverse; }
+  #ft-root [data-side="opp"] .crow-lastplay { text-align:right; }
+  #ft-root .log-panel select.move-select { width: auto; flex: 1 1 100px; }
+  #ft-root .log-panel button.del-btn { background: var(--panel-2); border: 1px solid var(--danger); color: var(--danger); border-radius: 6px; padding: 6px 10px; font-size: 12px; cursor:pointer; }
+
+  #ft-root .toast-stack { position:absolute; top: 8px; left: 8px; right: 8px; z-index: 1000; display:flex; flex-direction:column; gap: 8px; pointer-events:none; }
+  #ft-root .toast-card { background: linear-gradient(135deg,#1E3A29,#14181B); border: 1px solid var(--turf-bright); border-radius: 12px; padding: 10px 14px; box-shadow: 0 6px 20px rgba(0,0,0,0.45); pointer-events:auto; cursor:pointer; animation: toast-in 0.35s ease, toast-out 0.35s ease 4s forwards; }
+  #ft-root .toast-card.toast-opp { border-color: var(--danger); background: linear-gradient(135deg,#3A1E1E,#14181B); }
+  #ft-root .toast-top { display:flex; justify-content:space-between; align-items:baseline; gap: 8px; }
+  #ft-root .toast-name { font-family:'Barlow Condensed', sans-serif; font-weight:700; font-size: 15px; }
+  #ft-root .toast-delta { font-family:'Barlow Condensed', sans-serif; font-weight:700; font-size: 16px; color: var(--turf-bright); white-space:nowrap; }
+  #ft-root .toast-card.toast-opp .toast-delta { color: var(--danger); }
+  #ft-root .toast-event { font-size: 12.5px; color: var(--amber); font-weight:600; margin-top: 3px; }
+  #ft-root .toast-weektotal { font-size: 11px; color: var(--text-dim); text-align:right; margin-top: 3px; }
+  @keyframes toast-in { from { transform: translateY(-30px); opacity:0; } to { transform: translateY(0); opacity:1; } }
+  @keyframes toast-out { to { transform: translateY(-30px); opacity:0; } }
   #ft-root .matchup-vs { display:flex; align-items:center; justify-content:center; gap:10px; margin-top:2px; font-size: 11px; color: var(--text-dim); }
   #ft-root .matchup-vs b { color: var(--text); font-weight:600; }
+
 
   @keyframes pulse-dot { 0%,100% { box-shadow: 0 0 0 0 rgba(87,169,111,0.55); } 50% { box-shadow: 0 0 0 5px rgba(87,169,111,0); } }
   @keyframes crown-bob { 0%,100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-2px) rotate(4deg); } }
@@ -310,7 +358,9 @@
     ensureAudioCtx();
     root.removeEventListener('click', unlockAudioOnce);
   }, { once: true });
-  let state = { week: 1, activeTab: 'espn', activeSide: 'mine', data: {}, openLog: null, autoOn: false, autoStatus: 'Off', autoError: null, mvpData: null, mvpLoading: false, recapOpen: null, soundOn: true, showCoverageInfo: false };
+  let state = { week: 1, activeTab: 'espn', activeSide: 'mine', data: {}, openLog: null, autoOn: false, autoStatus: 'Off', autoError: null, mvpData: null, mvpLoading: false, recapOpen: null, soundOn: true, toastOn: true, showCoverageInfo: false };
+  let toastQueue = [];
+  let toastShowing = false;
   let saveTimer = null;
   let autoIntervalId = null;
 
@@ -393,6 +443,7 @@
   function render(){
     const d = state.data;
     root.innerHTML = `
+      <div class="toast-stack"></div>
       <div class="scoreboard">
         <div class="sb-top">
           <div class="sb-title">Gameday Tracker</div>
@@ -422,6 +473,7 @@
       <div class="auto-bar">
         <label class="auto-toggle"><input type="checkbox" id="auto-toggle-input" ${state.autoOn?'checked':''}> ⚡ Live Auto-Update (15s)</label>
         <button class="week-btn" id="sound-toggle-btn" style="padding:4px 8px; font-size:14px;" title="${state.soundOn ? 'Mute touchdown sound' : 'Unmute touchdown sound'}">${state.soundOn ? '🔊' : '🔇'}</button>
+        <label class="auto-toggle"><input type="checkbox" id="toast-toggle-input" ${state.toastOn?'checked':''}> 🔔 Point Alerts</label>
         <span class="auto-status">${state.autoError ? state.autoError : state.autoStatus}</span>
       </div>
       <div class="banner">
@@ -475,13 +527,87 @@
 
   function renderLeagueWrap(league){
     return `
-      <div class="side-tabs">
-        <button class="side-tab ${state.activeSide==='mine'?'active':''}" data-side="mine">My Team</button>
-        <button class="side-tab ${state.activeSide==='opp'?'active':''}" data-side="opp">Opponent${state.data[league].opponent && state.data[league].opponent.name ? ' · '+escapeAttr(state.data[league].opponent.name) : ''}</button>
+      ${renderMatchupHeader(league)}
+      <div class="section-label">Starters</div>
+      <div class="pair-list">
+        ${state.data[league].starters.map((_,i)=>renderStarterPairRow(league,i)).join('')}
       </div>
-      ${state.activeSide === 'opp' ? `<input class="opp-name-input" data-field="opp-name" placeholder="Opponent team name…" value="${escapeAttr(state.data[league].opponent.name)}">` : ''}
-      ${renderLeague(league, state.activeSide)}
+      <div class="section-label">
+        Bench
+        <span>
+          <button class="add-btn" data-action="add-bench" data-side="mine">+ Mine</button>
+          <button class="add-btn" data-action="add-bench" data-side="opp">+ Opp</button>
+        </span>
+      </div>
+      <div class="pair-list bench-list">
+        ${renderBenchColumns(league)}
+      </div>
     `;
+  }
+
+  function renderMatchupHeader(league){
+    const opp = state.data[league].opponent;
+    const myTotal = total(league, 'mine');
+    const oppTotal = total(league, 'opp');
+    const sum = myTotal + oppTotal;
+    const myPct = sum > 0 ? Math.round(myTotal / sum * 100) : 50;
+    const oppPct = 100 - myPct;
+    return `
+      <div class="matchup-header">
+        <div class="mh-row">
+          <div class="mh-team mh-left">
+            <div class="mh-score">${myTotal.toFixed(1)}</div>
+            <div class="mh-label">My Team</div>
+          </div>
+          <div class="mh-vs">VS</div>
+          <div class="mh-team mh-right">
+            <div class="mh-score">${oppTotal.toFixed(1)}</div>
+            <input class="opp-name-input" data-field="opp-name" placeholder="Opponent…" value="${escapeAttr(opp.name)}">
+          </div>
+        </div>
+        <div class="mh-winprob">
+          <span class="mh-pct">${myPct}%</span>
+          <div class="mh-bar"><div class="mh-bar-fill" style="width:${myPct}%"></div></div>
+          <span class="mh-pct">${oppPct}%</span>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderStarterPairRow(league, i){
+    const mineD = state.data[league];
+    const oppD = state.data[league].opponent;
+    const mineP = mineD.starters[i];
+    const oppP = oppD.starters[i];
+    const topMine = topScorerIdx(league, 'mine');
+    const topOpp = topScorerIdx(league, 'opp');
+    return `
+      <div class="pair-row">
+        ${renderRowBlock(league, 'mine', 'starter', i, mineP, mineD, i===topMine)}
+        <div class="slot-mid">${mineP.slot}</div>
+        ${renderRowBlock(league, 'opp', 'starter', i, oppP, oppD, i===topOpp)}
+      </div>
+    `;
+  }
+
+  function renderBenchColumns(league){
+    const mineD = state.data[league];
+    const oppD = state.data[league].opponent;
+    const maxLen = Math.max(mineD.bench.length, oppD.bench.length);
+    if (maxLen === 0) return `<div class="empty-hint">No bench players added yet.</div>`;
+    let rows = '';
+    for (let i = 0; i < maxLen; i++){
+      const mineP = mineD.bench[i];
+      const oppP = oppD.bench[i];
+      rows += `
+        <div class="pair-row bench-pair">
+          ${mineP ? renderRowBlock(league, 'mine', 'bench', i, mineP, mineD, false) : `<div class="empty-cell"></div>`}
+          <div class="slot-mid bench-mid"></div>
+          ${oppP ? renderRowBlock(league, 'opp', 'bench', i, oppP, oppD, false) : `<div class="empty-cell"></div>`}
+        </div>
+      `;
+    }
+    return rows;
   }
 
   function topScorerIdx(league, side){
@@ -759,22 +885,10 @@
     `;
   }
 
-  function renderLeague(league, side){
-    side = side || 'mine';
-    const d = getSide(league, side);
-    const topIdx = topScorerIdx(league, side);
-    return `
-      <div class="section-label">Starters</div>
-      ${d.starters.map((p,i)=>renderRowBlock(league,side,'starter',i,p,d,i===topIdx)).join('')}
-      <div class="section-label">Bench <button class="add-btn" data-action="add-bench">+ Add player</button></div>
-      ${d.bench.length ? d.bench.map((p,i)=>renderRowBlock(league,side,'bench',i,p,d,false)).join('') : `<div class="empty-hint">No bench players added yet.</div>`}
-    `;
-  }
-
   function renderRowBlock(league, side, kind, i, p, d, isTop){
     const isOpen = state.openLog && state.openLog.league===league && state.openLog.side===side && state.openLog.kind===kind && state.openLog.idx===i;
     const isSkill = kind === 'starter' ? AUTO_SLOTS.includes(p.slot) : !!(p.name && p.name.trim());
-    const autoBadge = isSkill ? `<button class="auto-badge ${p.autoEnabled===false?'paused':'on'}" data-action="toggle-auto" title="${p.autoEnabled===false?'Auto-sync paused — tap to resume':'Auto-syncing live stats — tap to pause'}">${p.autoEnabled===false?'⏸':'●'}${p.autoEnabled===false?'PAUSE':'AUTO'}</button>` : `<span></span>`;
+    const autoBadge = isSkill ? `<button class="auto-badge crow-auto ${p.autoEnabled===false?'paused':'on'}" data-action="toggle-auto" title="${p.autoEnabled===false?'Auto-sync paused — tap to resume':'Auto-syncing live stats — tap to pause'}">${p.autoEnabled===false?'⏸':'●'}</button>` : `<span class="crow-auto"></span>`;
     const crown = (kind === 'starter' && isTop) ? `<span class="crown" title="Top scorer">👑</span>` : '';
     const pts = parseFloat(p.points), proj = parseFloat(p.proj);
     let tempBadge = '';
@@ -785,44 +899,30 @@
     const injuryBadge = `<button class="injury-badge inj-${p.injury||''}" data-action="cycle-injury" title="Tap to set injury status (None → Q → O → IR)">${p.injury||''}</button>`;
     let statusIcon = '';
     if (p.name && p.name.trim()){
-      if (p.redZone && p.gameState === 'in') statusIcon = `<span class="status-icon" title="Red zone!">🚨</span>`;
+      if (p.gameState === 'in' && p.redZone) statusIcon = `<span class="status-icon" title="Red zone!">🚨</span>`;
+      else if (p.gameState === 'in' && p.hasPossession) statusIcon = `<span class="status-icon" title="Has the ball">🏈</span>`;
       else if (p.gameState === 'post') statusIcon = `<span class="status-icon" title="Game final">✅</span>`;
       else if (p.gameState === 'in') statusIcon = `<span class="status-icon" title="Game in progress">🟢</span>`;
       else statusIcon = `<span class="status-icon" title="Game not started yet (or bye)">⏳</span>`;
     }
-    const rowInner = kind === 'starter' ? `
-        <div class="slot-badge">${p.slot}</div>
-        ${injuryBadge}
-        <input class="name-input" placeholder="Add player…" value="${escapeAttr(p.name)}" data-field="name">
-        <div class="pts-wrap">
-          <div class="last-play ${p.lastPlay ? '' : 'empty'}">${statusIcon}${crown}${escapeAttr(p.lastPlay || '—')}${tempBadge}</div>
-          <input class="pts-input" placeholder="0.0" inputmode="decimal" value="${escapeAttr(p.points)}" data-field="points">
-        </div>
-        ${autoBadge}
-        <button class="log-btn" data-action="toggle-log" title="Log a play">⚡</button>
-        <select class="move-select" data-field="move">
-          <option value="">Move…</option>
-          <option value="bench">→ Bench</option>
-        </select>
-        <button class="del-btn" data-action="clear" title="Clear">×</button>
-      ` : `
-        ${injuryBadge}
-        <input class="name-input" placeholder="Player name…" value="${escapeAttr(p.name)}" data-field="name">
-        <div class="pts-wrap">
-          <div class="last-play ${p.lastPlay ? '' : 'empty'}">${statusIcon}${escapeAttr(p.lastPlay || '—')}</div>
-          <input class="pts-input" placeholder="0.0" inputmode="decimal" value="${escapeAttr(p.points)}" data-field="points">
-        </div>
-        ${autoBadge}
-        <button class="log-btn" data-action="toggle-log" title="Log a play">⚡</button>
-        <select class="move-select" data-field="move">
-          <option value="">Move…</option>
-          ${d.starters.map((s,si)=>`<option value="${si}">→ ${s.slot}${s.name ? ' (swap)' : ''}</option>`).join('')}
-        </select>
-        <button class="del-btn" data-action="remove-bench" title="Remove">×</button>
-      `;
+    const namePlaceholder = kind === 'starter' ? 'Add player…' : 'Player name…';
+    const moveOptions = kind === 'starter'
+      ? `<option value="">Move…</option><option value="bench">→ Bench</option>`
+      : `<option value="">Move…</option>${d.starters.map((s,si)=>`<option value="${si}">→ ${s.slot}${s.name ? ' (swap)' : ''}</option>`).join('')}`;
+    const delAction = kind === 'starter' ? 'clear' : 'remove-bench';
     return `
-      <div class="row-block" data-league="${league}" data-side="${side}" data-kind="${kind}" data-idx="${i}">
-        <div class="row ${kind==='bench'?'bench-row':''}">${rowInner}</div>
+      <div class="row-block crow" data-league="${league}" data-side="${side}" data-kind="${kind}" data-idx="${i}">
+        <div class="crow-top">
+          ${injuryBadge}
+          <input class="name-input" placeholder="${namePlaceholder}" value="${escapeAttr(p.name)}" data-field="name">
+          ${statusIcon}${crown}
+        </div>
+        <div class="crow-bottom">
+          <div class="crow-lastplay ${p.lastPlay ? '' : 'empty'}">${escapeAttr(p.lastPlay || '—')}${tempBadge}</div>
+          <input class="pts-input" placeholder="0.0" inputmode="decimal" value="${escapeAttr(p.points)}" data-field="points">
+          ${autoBadge}
+          <button class="log-btn crow-log" data-action="toggle-log" title="Log a play / more options">⚡</button>
+        </div>
         ${isOpen ? `
         <div class="log-panel">
           <input type="text" class="log-note" placeholder="Play note, e.g. 60 yd catch" value="">
@@ -840,6 +940,8 @@
           <label class="td-check"><input type="checkbox" class="log-td"> 🏈 Touchdown</label>
           <button class="log-submit-btn" data-action="log-submit">Add</button>
           <button class="log-cancel-btn" data-action="log-cancel">Cancel</button>
+          <select class="move-select" data-field="move">${moveOptions}</select>
+          <button class="del-btn" data-action="${delAction}" title="Remove">🗑 Remove</button>
         </div>` : ``}
       </div>
     `;
@@ -874,19 +976,13 @@
       });
     });
 
-    root.querySelectorAll('.side-tab').forEach(t => {
-      t.addEventListener('click', () => {
-        state.activeSide = t.dataset.side;
-        state.openLog = null;
-        render();
-      });
-    });
-
     const oppNameInput = root.querySelector('input[data-field="opp-name"]');
     if (oppNameInput){
       oppNameInput.addEventListener('input', () => {
         state.data[state.activeTab].opponent.name = oppNameInput.value;
         scheduleSave();
+        const line = root.querySelector('.sb-card[data-card="'+state.activeTab+'"] .matchup-vs');
+        // full re-render not needed for every keystroke on the scoreboard; refresh on blur instead
       });
       oppNameInput.addEventListener('blur', () => { render(); });
     }
@@ -919,6 +1015,11 @@
           updateAutoStatusDOM();
         }
       });
+    }
+
+    const toastToggle = root.querySelector('#toast-toggle-input');
+    if (toastToggle){
+      toastToggle.addEventListener('change', () => { state.toastOn = toastToggle.checked; });
     }
 
     const soundToggleBtn = root.querySelector('#sound-toggle-btn');
@@ -957,26 +1058,24 @@
               list[idx].autoEnabled = true;
               list[idx].gameState = undefined;
               list[idx].redZone = false;
-              list[idx].matchedFullName = undefined;
               list[idx].pos = kind === 'starter' ? (inferPosFromSlot(list[idx].slot) || undefined) : undefined;
               const ptsEl = blockEl.querySelector('.pts-input');
               if (ptsEl) ptsEl.value = '';
-              const lpEl = blockEl.querySelector('.last-play');
+              const lpEl = blockEl.querySelector('.crow-lastplay');
               if (lpEl){ lpEl.textContent = '—'; lpEl.classList.add('empty'); }
               const badge = blockEl.querySelector('.auto-badge');
               if (badge){
-                badge.classList.remove('paused'); badge.classList.add('on'); badge.textContent = '●AUTO'; badge.title = 'Auto-syncing live stats — tap to pause';
+                badge.classList.remove('paused'); badge.classList.add('on'); badge.textContent = '●'; badge.title = 'Auto-syncing live stats — tap to pause';
               } else if (kind === 'bench'){
                 // A fresh bench row has no badge yet (name was empty) — build one now instead of leaving it invisible.
-                const rowDiv = blockEl.querySelector('.row');
-                const placeholder = rowDiv && rowDiv.children[3];
+                const placeholder = blockEl.querySelector('.crow-auto');
                 if (placeholder && placeholder.tagName === 'SPAN'){
                   const newBadge = document.createElement('button');
-                  newBadge.className = 'auto-badge on';
+                  newBadge.className = 'auto-badge crow-auto on';
                   newBadge.setAttribute('data-action', 'toggle-auto');
                   newBadge.title = 'Auto-syncing live stats — tap to pause';
-                  newBadge.textContent = '●AUTO';
-                  rowDiv.replaceChild(newBadge, placeholder);
+                  newBadge.textContent = '●';
+                  placeholder.replaceWith(newBadge);
                   newBadge.addEventListener('click', () => {
                     list[idx].autoEnabled = list[idx].autoEnabled === false ? true : false;
                     render();
@@ -1027,7 +1126,7 @@
       if (delBtn){
         delBtn.addEventListener('click', () => {
           const p = getSide(league, side).starters[idx];
-          p.name = ''; p.points = ''; p.lastPlay = ''; p.autoEnabled = true; p.autoTotal = 0; p.autoStats = {}; p.gameState = undefined; p.redZone = false; p.matchedFullName = undefined;
+          p.name = ''; p.points = ''; p.lastPlay = ''; p.autoEnabled = true; p.autoTotal = 0; p.autoStats = {}; p.gameState = undefined; p.redZone = false;
           scheduleSave();
           render();
         });
@@ -1122,7 +1221,7 @@
             const cls = dir === 'down' ? 'flash-down' : 'flash-up';
             flashEl.classList.add(cls);
             setTimeout(()=>flashEl.classList.remove(cls), 1300);
-            const lp = flashEl.querySelector('.last-play');
+            const lp = flashEl.querySelector('.crow-lastplay');
             if (lp){ lp.classList.add('pop'); setTimeout(()=>lp.classList.remove('pop'), 500); }
           }
           bumpTotals(league, true);
@@ -1131,14 +1230,13 @@
       }
     });
 
-    const addBenchBtn = root.querySelector('button[data-action="add-bench"]');
-    if (addBenchBtn){
-      addBenchBtn.addEventListener('click', () => {
-        getSide(state.activeTab, state.activeSide).bench.push({name:'', points:'', lastPlay:''});
+    root.querySelectorAll('button[data-action="add-bench"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        getSide(state.activeTab, btn.dataset.side).bench.push({name:'', points:'', lastPlay:''});
         scheduleSave();
         render();
       });
-    }
+    });
 
     const cloneBtn = root.querySelector('#clone-btn');
     if (cloneBtn){
@@ -1147,11 +1245,11 @@
         const cloned = JSON.parse(JSON.stringify(state.data));
         ['espn','yahoo'].forEach(lg => {
           cloned[lg].result = '';
-          cloned[lg].starters.forEach(p => { p.points = ''; p.lastPlay = ''; p.autoEnabled = true; p.autoTotal = 0; p.autoStats = {}; p.gameState = undefined; p.redZone = false; p.matchedFullName = undefined; });
-          cloned[lg].bench.forEach(p => { p.points = ''; p.lastPlay = ''; p.autoEnabled = true; p.autoTotal = 0; p.autoStats = {}; p.gameState = undefined; p.redZone = false; p.matchedFullName = undefined; });
+          cloned[lg].starters.forEach(p => { p.points = ''; p.lastPlay = ''; p.autoEnabled = true; p.autoTotal = 0; p.autoStats = {}; p.gameState = undefined; p.redZone = false; });
+          cloned[lg].bench.forEach(p => { p.points = ''; p.lastPlay = ''; p.autoEnabled = true; p.autoTotal = 0; p.autoStats = {}; p.gameState = undefined; p.redZone = false; });
           if (cloned[lg].opponent){
             cloned[lg].opponent.name = '';
-            cloned[lg].opponent.starters.forEach(p => { p.name=''; p.points = ''; p.lastPlay = ''; p.autoEnabled = true; p.autoTotal = 0; p.autoStats = {}; p.gameState = undefined; p.redZone = false; p.matchedFullName = undefined; });
+            cloned[lg].opponent.starters.forEach(p => { p.name=''; p.points = ''; p.lastPlay = ''; p.autoEnabled = true; p.autoTotal = 0; p.autoStats = {}; p.gameState = undefined; p.redZone = false; });
             cloned[lg].opponent.bench = [];
           }
         });
@@ -1246,6 +1344,7 @@
     }
     const matchupEl = root.querySelector('.sb-card[data-card="'+league+'"] .matchup-vs');
     if (matchupEl){
+      const wrap = matchupEl.parentElement;
       matchupEl.outerHTML = renderMatchupLine(league);
     }
     if (bump && cardEl){ cardEl.classList.add('bump'); setTimeout(()=>cardEl.classList.remove('bump'), 500); }
@@ -1333,6 +1432,39 @@
     clearTimeout(tdTimer);
   }
 
+  function queueToast(name, eventText, delta, weekTotal, isOpp){
+    if (!state.toastOn) return;
+    toastQueue.push({ name, eventText, delta, weekTotal, isOpp });
+    processToastQueue();
+  }
+  function processToastQueue(){
+    if (toastShowing || !toastQueue.length) return;
+    const stack = root.querySelector('.toast-stack');
+    if (!stack) return;
+    toastShowing = true;
+    const t = toastQueue.shift();
+    const el = document.createElement('div');
+    el.className = 'toast-card' + (t.isOpp ? ' toast-opp' : '');
+    const d = Number(t.delta);
+    el.innerHTML = `
+      <div class="toast-top">
+        <span class="toast-name">${escapeAttr(t.name)}</span>
+        <span class="toast-delta">${!isNaN(d) ? ((d>=0?'+':'') + d.toFixed(2)) : ''}</span>
+      </div>
+      <div class="toast-event">${escapeAttr(t.eventText || '')}</div>
+      <div class="toast-weektotal">${(t.weekTotal||0).toFixed(2)} pts this week</div>
+    `;
+    const dismiss = () => {
+      if (!el.parentNode) return;
+      el.remove();
+      toastShowing = false;
+      processToastQueue();
+    };
+    el.addEventListener('click', dismiss);
+    stack.appendChild(el);
+    setTimeout(dismiss, 4300);
+  }
+
   // ---------- Live auto-poll (real NFL box scores, public ESPN scoreboard/summary endpoints) ----------
   function normalizeName(n){
     return String(n||'').toLowerCase().replace(/[.']/g,'').replace(/\b(jr|sr|ii|iii|iv|v)\b/g,'').replace(/\s+/g,' ').trim();
@@ -1366,6 +1498,7 @@
     return Math.round(pts * 100) / 100;
   }
 
+  // Exact ESPN league scoring (from league Scoring Settings)
   function calcDSTPoints(s){
     let pts = 0;
     const pa = s.pointsAllowed;
@@ -1467,6 +1600,7 @@
         const sum = await sumRes.json();
         const evState = (ev.status && ev.status.type && ev.status.type.state) || 'in';
 
+        // --- team score (points allowed) pairing ---
         const comp = sum.header && sum.header.competitions && sum.header.competitions[0];
         if (comp && comp.competitors && comp.competitors.length === 2){
           const ids = [];
@@ -1478,6 +1612,7 @@
             teamsMap[tid].scoreFor = parseFloat(c.score) || 0;
             teamsMap[tid].gameState = evState;
             teamsMap[tid].redZone = false;
+            teamsMap[tid].hasPossession = false;
           });
           if (ids.length === 2){
             teamsMap[ids[0]].pointsAllowed = teamsMap[ids[1]].scoreFor;
@@ -1485,11 +1620,13 @@
             pairs.push(ids);
           }
           const situation = comp.situation;
-          if (situation && situation.isRedZone && situation.possession && teamsMap[situation.possession]){
-            teamsMap[situation.possession].redZone = true;
+          if (situation && situation.possession && teamsMap[situation.possession]){
+            teamsMap[situation.possession].hasPossession = true;
+            if (situation.isRedZone) teamsMap[situation.possession].redZone = true;
           }
         }
 
+        // --- team-level box score stats (yards, sacks-allowed, turnovers) ---
         const teamStatsArr = (sum.boxscore && sum.boxscore.teams) || [];
         teamStatsArr.forEach(ts => {
           const tid = ts.team && ts.team.id;
@@ -1513,6 +1650,7 @@
           if (fumLost != null) teamsMap[tid].turnoverFum = fumLost;
         });
 
+        // --- player-level stats (passing/rushing/receiving/fumbles/kicking) ---
         const teams = (sum.boxscore && sum.boxscore.players) || [];
         teams.forEach(team => {
           const teamId = team.team && team.team.id;
@@ -1551,6 +1689,7 @@
       } catch(err) { /* skip this game, keep going */ }
     }
 
+    // cross-assign opponent-derived D/ST credit (yards/turnovers allowed by the OTHER team's offense)
     pairs.forEach(([a,b]) => {
       if (!teamsMap[a] || !teamsMap[b]) return;
       teamsMap[a].yardsAllowed = teamsMap[b].ownYards;
@@ -1571,7 +1710,7 @@
     if (p.autoEnabled === false) return null;
     const slotHint = p.slot || null; // starters have a slot; bench players don't, so we infer
 
-    let newTotal, newStats, desc, isTDEvent = false, gameState = null, redZoneFlag = false, matched = false;
+    let newTotal, newStats, desc, isTDEvent = false, gameState = null, redZoneFlag = false, possessionFlag = false, matched = false;
 
     const tryDST = () => {
       if (league !== 'espn') return false;
@@ -1631,6 +1770,7 @@
       p.matchedFullName = match.name;
       const teamEntry = match.teamId ? allTeams.find(t => t.id === match.teamId) : null;
       redZoneFlag = !!(teamEntry && teamEntry.redZone);
+      possessionFlag = !!(teamEntry && teamEntry.hasPossession);
       return true;
     }
 
@@ -1649,12 +1789,14 @@
 
     if (!matched) return null;
     const prevRedZone = !!p.redZone;
+    const prevPossession = !!p.hasPossession;
     if (gameState) p.gameState = gameState;
     p.redZone = redZoneFlag;
+    p.hasPossession = possessionFlag;
 
     const prevTotal = p.autoTotal || 0;
     const scoreChanged = !!(desc || newTotal !== prevTotal);
-    const redZoneChanged = prevRedZone !== redZoneFlag;
+    const redZoneChanged = prevRedZone !== redZoneFlag || prevPossession !== possessionFlag;
     if (!scoreChanged && !redZoneChanged) return null;
 
     if (scoreChanged){
@@ -1697,6 +1839,8 @@
             setTimeout(()=>el.classList.remove(cls), 1300);
           }
           if (c.isTDEvent && c.side === 'mine') triggerTouchdown(c.name, c.delta);
+          const p = getSide(c.league, c.side)[c.kind][c.idx];
+          if (p && c.delta) queueToast(c.name, p.lastPlay || '', c.delta, parseFloat(p.points) || 0, c.side === 'opp');
         });
         ['espn','yahoo'].forEach(league => {
           const totalEl = root.querySelector('.sb-card[data-card="'+league+'"] .league-total');
