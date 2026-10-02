@@ -39,12 +39,12 @@
   #ft-root .sb-title { font-family: 'Barlow Condensed', sans-serif; font-size: 22px; letter-spacing: 0.02em; font-weight: 600; }
   #ft-root .week-picker { display:flex; align-items:center; gap:8px; font-family:'Barlow Condensed', sans-serif; font-size: 15px; color: var(--text-dim); }
   #ft-root select.week-select { background: var(--panel-2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; font-family: inherit; font-size: 14px; }
-  #ft-root .sb-grid { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  #ft-root .sb-card { background: rgba(0,0,0,0.18); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; transition: box-shadow 0.3s; }
+  #ft-root .sb-grid { display:grid; grid-template-columns: 1fr 1fr; gap: 8px; min-width: 0; }
+  #ft-root .sb-card { background: rgba(0,0,0,0.18); border: 1px solid var(--line); border-radius: 10px; padding: 10px 10px; transition: box-shadow 0.3s; min-width: 0; overflow: hidden; }
   #ft-root .sb-card.bump { animation: card-bump 0.5s ease; }
-  #ft-root .sb-card .league-name { font-family:'Barlow Condensed', sans-serif; font-size: 14px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); margin-bottom: 2px; }
-  #ft-root .sb-card .league-total { font-family:'Barlow Condensed', sans-serif; font-variant-numeric: tabular-nums; font-size: 40px; font-weight: 600; line-height: 1; color: var(--turf-bright); }
-  #ft-root .sb-card .league-sub { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+  #ft-root .sb-card .league-name { font-family:'Barlow Condensed', sans-serif; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-dim); margin-bottom: 2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #ft-root .sb-card .league-total { font-family:'Barlow Condensed', sans-serif; font-variant-numeric: tabular-nums; font-size: 32px; font-weight: 600; line-height: 1; color: var(--turf-bright); }
+  #ft-root .sb-card .league-sub { font-size: 11px; color: var(--text-dim); margin-top: 4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   #ft-root .banner { font-size: 12.5px; color: var(--text-dim); background: var(--panel-2); border-bottom: 1px solid var(--line); padding: 9px 20px; line-height: 1.5; }
   #ft-root .banner b { color: var(--amber); font-weight: 600; }
   #ft-root .banner { padding: 6px 20px; }
@@ -187,19 +187,19 @@
   #ft-root .log-panel select.move-select { width: auto; flex: 1 1 100px; }
   #ft-root .log-panel button.del-btn { background: var(--panel-2); border: 1px solid var(--danger); color: var(--danger); border-radius: 6px; padding: 6px 10px; font-size: 12px; cursor:pointer; }
 
-  #ft-root .toast-stack { position:absolute; top: 8px; left: 8px; right: 8px; z-index: 1000; display:flex; flex-direction:column; gap: 8px; pointer-events:none; }
-  #ft-root .toast-card { background: linear-gradient(135deg,#1E3A29,#14181B); border: 1px solid var(--turf-bright); border-radius: 12px; padding: 10px 14px; box-shadow: 0 6px 20px rgba(0,0,0,0.45); pointer-events:auto; cursor:pointer; animation: toast-in 0.35s ease, toast-out 0.35s ease 4s forwards; }
-  #ft-root .toast-card.toast-opp { border-color: var(--danger); background: linear-gradient(135deg,#3A1E1E,#14181B); }
-  #ft-root .toast-top { display:flex; justify-content:space-between; align-items:baseline; gap: 8px; }
-  #ft-root .toast-name { font-family:'Barlow Condensed', sans-serif; font-weight:700; font-size: 15px; }
-  #ft-root .toast-delta { font-family:'Barlow Condensed', sans-serif; font-weight:700; font-size: 16px; color: var(--turf-bright); white-space:nowrap; }
-  #ft-root .toast-card.toast-opp .toast-delta { color: var(--danger); }
-  #ft-root .toast-event { font-size: 12.5px; color: var(--amber); font-weight:600; margin-top: 3px; }
-  #ft-root .toast-weektotal { font-size: 11px; color: var(--text-dim); text-align:right; margin-top: 3px; }
+  .ft-toast-stack { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); width: min(780px, calc(100% - 16px)); z-index: 999999; display:flex; flex-direction:column; gap: 8px; pointer-events:none; }
+  .ft-toast-card { font-family: 'Inter', system-ui, sans-serif; background: linear-gradient(135deg,#1E3A29,#14181B); border: 1px solid #57A96F; border-radius: 12px; padding: 10px 14px; box-shadow: 0 6px 20px rgba(0,0,0,0.45); pointer-events:auto; cursor:pointer; animation: toast-in 0.35s ease, toast-out 0.35s ease 5s forwards; }
+  .ft-toast-card.toast-opp { border-color: #C4593F; background: linear-gradient(135deg,#3A1E1E,#14181B); }
+  .ft-toast-top { display:flex; justify-content:space-between; align-items:baseline; gap: 8px; }
+  .ft-toast-name { font-family:'Barlow Condensed', sans-serif; font-weight:700; font-size: 15px; color: #ECEAE3; }
+  .ft-toast-delta { font-family:'Barlow Condensed', sans-serif; font-weight:700; font-size: 16px; color: #57A96F; white-space:nowrap; }
+  .ft-toast-card.toast-opp .ft-toast-delta { color: #C4593F; }
+  .ft-toast-event { font-size: 12.5px; color: #E3A23C; font-weight:600; margin-top: 3px; }
+  .ft-toast-weektotal { font-size: 11px; color: #9AA3A8; text-align:right; margin-top: 3px; }
   @keyframes toast-in { from { transform: translateY(-30px); opacity:0; } to { transform: translateY(0); opacity:1; } }
   @keyframes toast-out { to { transform: translateY(-30px); opacity:0; } }
-  #ft-root .matchup-vs { display:flex; align-items:center; justify-content:center; gap:10px; margin-top:2px; font-size: 11px; color: var(--text-dim); }
-  #ft-root .matchup-vs b { color: var(--text); font-weight:600; }
+  #ft-root .matchup-vs { display:flex; align-items:baseline; justify-content:flex-start; gap:4px; margin-top:4px; font-size: 10.5px; color: var(--text-dim); flex-wrap: nowrap; min-width:0; }
+  #ft-root .matchup-vs b { color: var(--text); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; flex:1; }
 
 
   @keyframes pulse-dot { 0%,100% { box-shadow: 0 0 0 0 rgba(87,169,111,0.55); } 50% { box-shadow: 0 0 0 5px rgba(87,169,111,0); } }
@@ -354,6 +354,9 @@
   }
 
   const root = document.getElementById('ft-root');
+  const toastStack = document.createElement('div');
+  toastStack.className = 'ft-toast-stack';
+  document.body.appendChild(toastStack);
   root.addEventListener('click', function unlockAudioOnce(){
     ensureAudioCtx();
     root.removeEventListener('click', unlockAudioOnce);
@@ -443,7 +446,6 @@
   function render(){
     const d = state.data;
     root.innerHTML = `
-      <div class="toast-stack"></div>
       <div class="scoreboard">
         <div class="sb-top">
           <div class="sb-title">Gameday Tracker</div>
@@ -620,11 +622,31 @@
     return bestVal > 0 ? bestIdx : -1;
   }
 
+  function computeAccuracyFor(d){
+    if (!d || !Array.isArray(d.starters)) return null;
+    const slots = d.starters.map((s,i) => ({ idx:i, slot:s.slot, eligible: slotEligibility(s.slot) }));
+    const sortedSlots = [...slots].sort((a,b) => a.eligible.length - b.eligible.length);
+    const pool = [];
+    (d.starters||[]).forEach(p => { if (p.name && p.name.trim() && p.pos){ const v=parseFloat(p.points); pool.push({name:p.name,pos:p.pos,points:isNaN(v)?0:v}); } });
+    (d.bench||[]).forEach(p => { if (p.name && p.name.trim() && p.pos){ const v=parseFloat(p.points); pool.push({name:p.name,pos:p.pos,points:isNaN(v)?0:v}); } });
+    const remaining = [...pool].sort((a,b)=>b.points-a.points);
+    const usedNames = new Set();
+    let optimalTotal = 0;
+    sortedSlots.forEach(slotInfo => {
+      const pick = remaining.find(p => !usedNames.has(p.name) && slotInfo.eligible.includes(p.pos));
+      if (pick){ optimalTotal += pick.points; usedNames.add(pick.name); }
+    });
+    const actualTotal = (d.starters||[]).reduce((sum,p) => { const v = parseFloat(p.points); return sum + (isNaN(v)?0:v); }, 0);
+    if (optimalTotal <= 0) return null;
+    return Math.min(100, Math.round((actualTotal / optimalTotal) * 1000) / 10);
+  }
+
   async function computeSeasonStats(){
     const totals = { espn: {}, yahoo: {} };
     const benchTotals = { espn: {}, yahoo: {} };
     const trend = { espn: [], yahoo: [] };
     const record = { espn: { w: 0, l: 0 }, yahoo: { w: 0, l: 0 } };
+    const accuracy = { espn: { mine: [], opp: [] }, yahoo: { mine: [], opp: [] } };
     for (let w = 1; w <= 18; w++){
       try {
         const res = await window.storage.get(weekKey(w), false);
@@ -640,6 +662,11 @@
           }, 0);
           const anyFilled = (wd[league].starters||[]).some(p => p.name && p.name.trim() && p.points !== '');
           if (anyFilled) trend[league].push({ week: w, total: Math.round(starterTotal * 100) / 100 });
+
+          const myAcc = computeAccuracyFor(wd[league]);
+          if (myAcc !== null) accuracy[league].mine.push(myAcc);
+          const oppAcc = computeAccuracyFor(wd[league].opponent);
+          if (oppAcc !== null) accuracy[league].opp.push(oppAcc);
 
           const all = [...(wd[league].starters||[]), ...(wd[league].bench||[])];
           all.forEach(p => {
@@ -664,15 +691,31 @@
         });
       } catch(e) { /* skip unreadable/missing week */ }
     }
-    const rank = (obj, dir) => Object.entries(obj)
+    // Only keep players who are still on this week's roster — anyone else was likely cut or traded.
+    const currentRoster = { espn: new Set(), yahoo: new Set() };
+    ['espn','yahoo'].forEach(league => {
+      const d = state.data[league];
+      if (!d) return;
+      [...(d.starters||[]), ...(d.bench||[])].forEach(p => {
+        const name = (p.name||'').trim();
+        if (name) currentRoster[league].add(name);
+      });
+    });
+    const rank = (obj, dir, league) => Object.entries(obj)
+      .filter(([name]) => currentRoster[league].has(name))
       .map(([name, d]) => ({ name, total: Math.round(d.total * 100) / 100, weeks: d.weeks }))
       .sort((a, b) => dir === 'desc' ? b.total - a.total : a.total - b.total)
       .slice(0, 3);
+    const avg = arr => arr.length ? Math.round((arr.reduce((a,b)=>a+b,0) / arr.length) * 10) / 10 : null;
     state.mvpData = {
-      espn: { top: rank(totals.espn, 'desc'), bottom: rank(totals.espn, 'asc'), benchTop: rank(benchTotals.espn, 'desc') },
-      yahoo: { top: rank(totals.yahoo, 'desc'), bottom: rank(totals.yahoo, 'asc'), benchTop: rank(benchTotals.yahoo, 'desc') },
+      espn: { top: rank(totals.espn, 'desc', 'espn'), bottom: rank(totals.espn, 'asc', 'espn'), benchTop: rank(benchTotals.espn, 'desc', 'espn') },
+      yahoo: { top: rank(totals.yahoo, 'desc', 'yahoo'), bottom: rank(totals.yahoo, 'asc', 'yahoo'), benchTop: rank(benchTotals.yahoo, 'desc', 'yahoo') },
       trend,
-      record
+      record,
+      accuracy: {
+        espn: { mine: avg(accuracy.espn.mine), opp: avg(accuracy.espn.opp) },
+        yahoo: { mine: avg(accuracy.yahoo.mine), opp: avg(accuracy.yahoo.opp) }
+      }
     };
     state.mvpLoading = false;
   }
@@ -809,6 +852,7 @@
     const benchMVP = [...benchFilled].sort((a,b) => parseFloat(b.points) - parseFloat(a.points))[0] || null;
     const optimal = computeOptimalLineup(league);
     const accuracy = optimal.optimalTotal > 0 ? Math.min(100, Math.round((optimal.actualTotal / optimal.optimalTotal) * 1000) / 10) : null;
+    const oppAccuracy = computeAccuracyFor(d.opponent);
     const label = league === 'espn' ? 'ESPN · Half-PPR' : 'Yahoo · Standard';
     const result = d.result || '';
     const resultLabel = result === 'W' ? '✅ WIN' : result === 'L' ? '❌ LOSS' : '⚪ Set result';
@@ -825,6 +869,7 @@
         <div class="recap-row"><span class="recap-label">🧊 Biggest bust</span><span class="recap-value">${bust ? escapeAttr(bust.name) + ' — ' + parseFloat(bust.points).toFixed(2) : '—'}</span></div>
         <div class="recap-row"><span class="recap-label">Starters set</span><span class="recap-value">${startersFilled(league)}/${d.starters.length}</span></div>
         <div class="recap-row"><span class="recap-label">🎯 Start/Sit Accuracy</span><span class="recap-value">${accuracy !== null ? accuracy + '%' : '—'}</span></div>
+        ${opp && opp.name ? `<div class="recap-row"><span class="recap-label">🎯 Opponent Accuracy</span><span class="recap-value">${oppAccuracy !== null ? oppAccuracy + '%' : '—'}</span></div>` : ''}
         ${benchMVP ? `<div class="recap-row"><span class="recap-label">🪑 Bench Warmer of the Week</span><span class="recap-value">${escapeAttr(benchMVP.name)} — ${parseFloat(benchMVP.points).toFixed(2)}</span></div>` : ''}
         <button class="recap-close-btn" data-action="recap-close">Close</button>
       </div>
@@ -835,7 +880,7 @@
     if (state.mvpLoading){
       return `<div class="empty-hint">Crunching season totals across your saved weeks…</div>`;
     }
-    const d = state.mvpData || { espn:{top:[],bottom:[],benchTop:[]}, yahoo:{top:[],bottom:[],benchTop:[]}, trend:{espn:[],yahoo:[]}, record:{espn:{w:0,l:0},yahoo:{w:0,l:0}} };
+    const d = state.mvpData || { espn:{top:[],bottom:[],benchTop:[]}, yahoo:{top:[],bottom:[],benchTop:[]}, trend:{espn:[],yahoo:[]}, record:{espn:{w:0,l:0},yahoo:{w:0,l:0}}, accuracy:{espn:{mine:null,opp:null},yahoo:{mine:null,opp:null}} };
     const medals = ['🥇','🥈','🥉'];
     const busts = ['📉','🪦','💀'];
     const renderCol = (label, arr, icons) => `
@@ -858,6 +903,21 @@
         </div>
         <div class="mvp-col">
           ${renderTrendChart(d.trend)}
+        </div>
+      </div>
+      <div class="mvp-section">
+        <div class="section-label">🎯 Start/Sit Accuracy — season average, mine vs opponent</div>
+        <div class="mvp-cols">
+          <div class="mvp-col">
+            <div class="mvp-col-label">ESPN</div>
+            <div class="mvp-row"><span class="mvp-name">Mine</span><span class="mvp-total">${d.accuracy.espn.mine!==null?d.accuracy.espn.mine+'%':'—'}</span></div>
+            <div class="mvp-row"><span class="mvp-name">Opponents</span><span class="mvp-total">${d.accuracy.espn.opp!==null?d.accuracy.espn.opp+'%':'—'}</span></div>
+          </div>
+          <div class="mvp-col">
+            <div class="mvp-col-label">Yahoo</div>
+            <div class="mvp-row"><span class="mvp-name">Mine</span><span class="mvp-total">${d.accuracy.yahoo.mine!==null?d.accuracy.yahoo.mine+'%':'—'}</span></div>
+            <div class="mvp-row"><span class="mvp-name">Opponents</span><span class="mvp-total">${d.accuracy.yahoo.opp!==null?d.accuracy.yahoo.opp+'%':'—'}</span></div>
+          </div>
         </div>
       </div>
       <div class="mvp-section">
@@ -896,7 +956,7 @@
       if (pts >= proj * 1.15) tempBadge = `<span class="temp-badge" title="Blowing past projection">🔥</span>`;
       else if (pts <= proj * 0.85) tempBadge = `<span class="temp-badge" title="Well under projection">🥶</span>`;
     }
-    const injuryBadge = `<button class="injury-badge inj-${p.injury||''}" data-action="cycle-injury" title="Tap to set injury status (None → Q → O → IR)">${p.injury||''}</button>`;
+    const injuryBadge = p.injury ? `<span class="injury-badge inj-${p.injury}" title="${p.injury}">${p.injury}</span>` : '';
     let statusIcon = '';
     if (p.name && p.name.trim()){
       if (p.gameState === 'in' && p.redZone) statusIcon = `<span class="status-icon" title="Red zone!">🚨</span>`;
@@ -938,6 +998,12 @@
             <option value="DST" ${p.pos==='DST'?'selected':''}>D/ST</option>
           </select>
           <label class="td-check"><input type="checkbox" class="log-td"> 🏈 Touchdown</label>
+          <select class="log-injury" title="Injury status">
+            <option value="" ${!p.injury?'selected':''}>Healthy</option>
+            <option value="Q" ${p.injury==='Q'?'selected':''}>Questionable</option>
+            <option value="O" ${p.injury==='O'?'selected':''}>Out</option>
+            <option value="IR" ${p.injury==='IR'?'selected':''}>IR</option>
+          </select>
           <button class="log-submit-btn" data-action="log-submit">Add</button>
           <button class="log-cancel-btn" data-action="log-cancel">Cancel</button>
           <select class="move-select" data-field="move">${moveOptions}</select>
@@ -1161,12 +1227,10 @@
         });
       }
 
-      const injuryBtn = blockEl.querySelector('button[data-action="cycle-injury"]');
-      if (injuryBtn){
-        injuryBtn.addEventListener('click', () => {
-          const cycle = ['', 'Q', 'O', 'IR'];
-          const cur = cycle.indexOf(list[idx].injury || '');
-          list[idx].injury = cycle[(cur + 1) % cycle.length];
+      const injurySel = blockEl.querySelector('.log-injury');
+      if (injurySel){
+        injurySel.addEventListener('change', () => {
+          list[idx].injury = injurySel.value;
           scheduleSave();
           render();
         });
@@ -1439,20 +1503,18 @@
   }
   function processToastQueue(){
     if (toastShowing || !toastQueue.length) return;
-    const stack = root.querySelector('.toast-stack');
-    if (!stack) return;
     toastShowing = true;
     const t = toastQueue.shift();
     const el = document.createElement('div');
-    el.className = 'toast-card' + (t.isOpp ? ' toast-opp' : '');
+    el.className = 'ft-toast-card' + (t.isOpp ? ' toast-opp' : '');
     const d = Number(t.delta);
     el.innerHTML = `
-      <div class="toast-top">
-        <span class="toast-name">${escapeAttr(t.name)}</span>
-        <span class="toast-delta">${!isNaN(d) ? ((d>=0?'+':'') + d.toFixed(2)) : ''}</span>
+      <div class="ft-toast-top">
+        <span class="ft-toast-name">${escapeAttr(t.name)}</span>
+        <span class="ft-toast-delta">${!isNaN(d) ? ((d>=0?'+':'') + d.toFixed(2)) : ''}</span>
       </div>
-      <div class="toast-event">${escapeAttr(t.eventText || '')}</div>
-      <div class="toast-weektotal">${(t.weekTotal||0).toFixed(2)} pts this week</div>
+      <div class="ft-toast-event">${escapeAttr(t.eventText || '')}</div>
+      <div class="ft-toast-weektotal">${(t.weekTotal||0).toFixed(2)} pts this week</div>
     `;
     const dismiss = () => {
       if (!el.parentNode) return;
@@ -1461,8 +1523,8 @@
       processToastQueue();
     };
     el.addEventListener('click', dismiss);
-    stack.appendChild(el);
-    setTimeout(dismiss, 4300);
+    toastStack.appendChild(el);
+    setTimeout(dismiss, 5300);
   }
 
   // ---------- Live auto-poll (real NFL box scores, public ESPN scoreboard/summary endpoints) ----------
@@ -1619,7 +1681,8 @@
             teamsMap[ids[1]].pointsAllowed = teamsMap[ids[0]].scoreFor;
             pairs.push(ids);
           }
-          const situation = comp.situation;
+          const evComp = ev.competitions && ev.competitions[0];
+          const situation = (evComp && evComp.situation) || comp.situation;
           if (situation && situation.possession && teamsMap[situation.possession]){
             teamsMap[situation.possession].hasPossession = true;
             if (situation.isRedZone) teamsMap[situation.possession].redZone = true;
@@ -1840,7 +1903,7 @@
           }
           if (c.isTDEvent && c.side === 'mine') triggerTouchdown(c.name, c.delta);
           const p = getSide(c.league, c.side)[c.kind][c.idx];
-          if (p && c.delta) queueToast(c.name, p.lastPlay || '', c.delta, parseFloat(p.points) || 0, c.side === 'opp');
+          if (p && c.delta && c.kind === 'starter') queueToast(c.name, p.lastPlay || '', c.delta, parseFloat(p.points) || 0, c.side === 'opp');
         });
         ['espn','yahoo'].forEach(league => {
           const totalEl = root.querySelector('.sb-card[data-card="'+league+'"] .league-total');
