@@ -1541,6 +1541,16 @@
     if (!a || !b) return false;
     return a.initial === b.initial && a.last === b.last;
   }
+  function normalizePos(raw){
+    if (!raw) return null;
+    const r = String(raw).toUpperCase();
+    if (r === 'QB') return 'QB';
+    if (['RB','HB','FB'].includes(r)) return 'RB';
+    if (r === 'WR') return 'WR';
+    if (r === 'TE') return 'TE';
+    if (['K','PK'].includes(r)) return 'K';
+    return null;
+  }
   const SCORING = {
     espn:  { passYdsPerPt: 25, passTD: 4, rushYdsPerPt: 10, rushTD: 6, recYdsPerPt: 10, recTD: 6, int: -2, fumLost: -2 },
     yahoo: { passYdsPerPt: 30, passTD: 3, rushYdsPerPt: 10, rushTD: 6, recYdsPerPt: 10, recTD: 6, int: -2, fumLost: -2 }
@@ -1732,9 +1742,13 @@
               const stats = a.stats || [];
               const num = (i) => (i >= 0 && stats[i] !== undefined) ? (parseFloat(stats[i]) || 0) : 0;
               let entry = allPlayers.find(p => p.name === nm);
-              if (!entry){ entry = {name: nm, passYds:0,passTD:0,int:0,rushYds:0,rushTD:0,recYds:0,recTD:0,rec:0,fumLost:0,fgMake:0,fgAtt:0,fgMiss:0,patMade:0,patAtt:0}; allPlayers.push(entry); }
+              if (!entry){ entry = {name: nm, pos:null, passYds:0,passTD:0,int:0,rushYds:0,rushTD:0,recYds:0,recTD:0,rec:0,fumLost:0,fgMake:0,fgAtt:0,fgMiss:0,patMade:0,patAtt:0}; allPlayers.push(entry); }
               entry.gameState = evState;
               entry.teamId = teamId;
+              if (!entry.pos){
+                const posAbbr = a.athlete && a.athlete.position && (a.athlete.position.abbreviation || a.athlete.position.name);
+                if (posAbbr) entry.pos = posAbbr;
+              }
               if (cat.name === 'passing'){ entry.passYds += num(ydsIdx); entry.passTD += num(tdIdx); entry.int += num(intIdx); }
               else if (cat.name === 'rushing'){ entry.rushYds += num(ydsIdx); entry.rushTD += num(tdIdx); }
               else if (cat.name === 'receiving'){ entry.recYds += num(ydsIdx); entry.recTD += num(tdIdx); entry.rec += num(recIdx); }
@@ -1785,6 +1799,7 @@
       desc = describeDeltaDST(p.autoStats || {}, match);
       newStats = { pointsAllowed: match.pointsAllowed, yardsAllowed: match.yardsAllowed, sacks: match.sacks, int: match.int, fumRec: match.fumRec };
       gameState = match.gameState;
+      if (!p.pos) p.pos = 'DST';
       return true;
     };
     const tryK = (candidate) => {
@@ -1794,6 +1809,7 @@
       desc = describeDeltaK(p.autoStats || {}, match);
       newStats = { patMade: match.patMade, fgMiss: match.fgMiss };
       gameState = match.gameState;
+      if (!p.pos) p.pos = 'K';
       return true;
     };
     const statSignature = (c) => {
@@ -1831,6 +1847,10 @@
       newStats = { passYds:match.passYds, passTD:match.passTD, int:match.int, rushYds:match.rushYds, rushTD:match.rushTD, recYds:match.recYds, recTD:match.recTD, rec:match.rec, fumLost:match.fumLost };
       gameState = match.gameState;
       p.matchedFullName = match.name;
+      if (!p.pos){
+        const np = normalizePos(match.pos);
+        if (np) p.pos = np;
+      }
       const teamEntry = match.teamId ? allTeams.find(t => t.id === match.teamId) : null;
       redZoneFlag = !!(teamEntry && teamEntry.redZone);
       possessionFlag = !!(teamEntry && teamEntry.hasPossession);
