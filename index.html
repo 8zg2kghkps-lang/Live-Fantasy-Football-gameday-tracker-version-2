@@ -362,8 +362,6 @@
     root.removeEventListener('click', unlockAudioOnce);
   }, { once: true });
   let state = { week: 1, activeTab: 'espn', activeSide: 'mine', data: {}, openLog: null, autoOn: false, autoStatus: 'Off', autoError: null, mvpData: null, mvpLoading: false, recapOpen: null, soundOn: true, toastOn: true, showCoverageInfo: false };
-  let toastQueue = [];
-  let toastShowing = false;
   let saveTimer = null;
   let autoIntervalId = null;
 
@@ -1047,8 +1045,6 @@
       oppNameInput.addEventListener('input', () => {
         state.data[state.activeTab].opponent.name = oppNameInput.value;
         scheduleSave();
-        const line = root.querySelector('.sb-card[data-card="'+state.activeTab+'"] .matchup-vs');
-        // full re-render not needed for every keystroke on the scoreboard; refresh on blur instead
       });
       oppNameInput.addEventListener('blur', () => { render(); });
     }
@@ -1290,6 +1286,7 @@
           }
           bumpTotals(league, true);
           if (isTD) triggerTouchdown(p.name || 'Your player', delta);
+          if (kind === 'starter' && delta) queueToast(p.name || 'Player', p.lastPlay || '', delta, parseFloat(p.points) || 0, side === 'opp');
         });
       }
     });
@@ -1408,7 +1405,6 @@
     }
     const matchupEl = root.querySelector('.sb-card[data-card="'+league+'"] .matchup-vs');
     if (matchupEl){
-      const wrap = matchupEl.parentElement;
       matchupEl.outerHTML = renderMatchupLine(league);
     }
     if (bump && cardEl){ cardEl.classList.add('bump'); setTimeout(()=>cardEl.classList.remove('bump'), 500); }
@@ -1417,25 +1413,6 @@
   function updateAutoStatusDOM(){
     const el = root.querySelector('.auto-status');
     if (el) el.textContent = state.autoError ? state.autoError : state.autoStatus;
-  }
-
-  function updatePlayerDOM(league, kind, idx, p, prevPoints){
-    const block = root.querySelector(`.row-block[data-league="${league}"][data-kind="${kind}"][data-idx="${idx}"]`);
-    if (!block) return;
-    const ptsInput = block.querySelector('.pts-input');
-    if (ptsInput) ptsInput.value = p.points;
-    const lastPlayEl = block.querySelector('.last-play');
-    if (lastPlayEl){
-      lastPlayEl.textContent = p.lastPlay || '—';
-      lastPlayEl.classList.remove('empty');
-      lastPlayEl.classList.add('pop');
-      setTimeout(()=>lastPlayEl.classList.remove('pop'), 500);
-    }
-    const prev = parseFloat(prevPoints) || 0;
-    const now = parseFloat(p.points) || 0;
-    const cls = now < prev ? 'flash-down' : 'flash-up';
-    block.classList.add(cls);
-    setTimeout(()=>block.classList.remove(cls), 1300);
   }
 
   let audioCtx = null;
@@ -1496,33 +1473,23 @@
     clearTimeout(tdTimer);
   }
 
+  // Stacking toasts: green = my player, red = opponent player (starters only)
   function queueToast(name, eventText, delta, weekTotal, isOpp){
     if (!state.toastOn) return;
-    toastQueue.push({ name, eventText, delta, weekTotal, isOpp });
-    processToastQueue();
-  }
-  function processToastQueue(){
-    if (toastShowing || !toastQueue.length) return;
-    toastShowing = true;
-    const t = toastQueue.shift();
     const el = document.createElement('div');
-    el.className = 'ft-toast-card' + (t.isOpp ? ' toast-opp' : '');
-    const d = Number(t.delta);
+    el.className = 'ft-toast-card' + (isOpp ? ' toast-opp' : '');
+    const d = Number(delta);
     el.innerHTML = `
       <div class="ft-toast-top">
-        <span class="ft-toast-name">${escapeAttr(t.name)}</span>
+        <span class="ft-toast-name">${escapeAttr(name)}</span>
         <span class="ft-toast-delta">${!isNaN(d) ? ((d>=0?'+':'') + d.toFixed(2)) : ''}</span>
       </div>
-      <div class="ft-toast-event">${escapeAttr(t.eventText || '')}</div>
-      <div class="ft-toast-weektotal">${(t.weekTotal||0).toFixed(2)} pts this week</div>
+      <div class="ft-toast-event">${escapeAttr(eventText || '')}</div>
+      <div class="ft-toast-weektotal">${(weekTotal||0).toFixed(2)} pts this week</div>
     `;
-    const dismiss = () => {
-      if (!el.parentNode) return;
-      el.remove();
-      toastShowing = false;
-      processToastQueue();
-    };
+    const dismiss = () => { if (el.parentNode) el.remove(); };
     el.addEventListener('click', dismiss);
+    while (toastStack.children.length >= 4) toastStack.firstChild.remove();
     toastStack.appendChild(el);
     setTimeout(dismiss, 5300);
   }
@@ -1540,16 +1507,6 @@
     const a = lastNameInitial(rosterName), b = lastNameInitial(statName);
     if (!a || !b) return false;
     return a.initial === b.initial && a.last === b.last;
-  }
-  function normalizePos(raw){
-    if (!raw) return null;
-    const r = String(raw).toUpperCase();
-    if (r === 'QB') return 'QB';
-    if (['RB','HB','FB'].includes(r)) return 'RB';
-    if (r === 'WR') return 'WR';
-    if (r === 'TE') return 'TE';
-    if (['K','PK'].includes(r)) return 'K';
-    return null;
   }
   const SCORING = {
     espn:  { passYdsPerPt: 25, passTD: 4, rushYdsPerPt: 10, rushTD: 6, recYdsPerPt: 10, recTD: 6, int: -2, fumLost: -2 },
@@ -1742,13 +1699,9 @@
               const stats = a.stats || [];
               const num = (i) => (i >= 0 && stats[i] !== undefined) ? (parseFloat(stats[i]) || 0) : 0;
               let entry = allPlayers.find(p => p.name === nm);
-              if (!entry){ entry = {name: nm, pos:null, passYds:0,passTD:0,int:0,rushYds:0,rushTD:0,recYds:0,recTD:0,rec:0,fumLost:0,fgMake:0,fgAtt:0,fgMiss:0,patMade:0,patAtt:0}; allPlayers.push(entry); }
+              if (!entry){ entry = {name: nm, passYds:0,passTD:0,int:0,rushYds:0,rushTD:0,recYds:0,recTD:0,rec:0,fumLost:0,fgMake:0,fgAtt:0,fgMiss:0,patMade:0,patAtt:0}; allPlayers.push(entry); }
               entry.gameState = evState;
               entry.teamId = teamId;
-              if (!entry.pos){
-                const posAbbr = a.athlete && a.athlete.position && (a.athlete.position.abbreviation || a.athlete.position.name);
-                if (posAbbr) entry.pos = posAbbr;
-              }
               if (cat.name === 'passing'){ entry.passYds += num(ydsIdx); entry.passTD += num(tdIdx); entry.int += num(intIdx); }
               else if (cat.name === 'rushing'){ entry.rushYds += num(ydsIdx); entry.rushTD += num(tdIdx); }
               else if (cat.name === 'receiving'){ entry.recYds += num(ydsIdx); entry.recTD += num(tdIdx); entry.rec += num(recIdx); }
@@ -1799,7 +1752,6 @@
       desc = describeDeltaDST(p.autoStats || {}, match);
       newStats = { pointsAllowed: match.pointsAllowed, yardsAllowed: match.yardsAllowed, sacks: match.sacks, int: match.int, fumRec: match.fumRec };
       gameState = match.gameState;
-      if (!p.pos) p.pos = 'DST';
       return true;
     };
     const tryK = (candidate) => {
@@ -1809,7 +1761,6 @@
       desc = describeDeltaK(p.autoStats || {}, match);
       newStats = { patMade: match.patMade, fgMiss: match.fgMiss };
       gameState = match.gameState;
-      if (!p.pos) p.pos = 'K';
       return true;
     };
     const statSignature = (c) => {
@@ -1847,10 +1798,6 @@
       newStats = { passYds:match.passYds, passTD:match.passTD, int:match.int, rushYds:match.rushYds, rushTD:match.rushTD, recYds:match.recYds, recTD:match.recTD, rec:match.rec, fumLost:match.fumLost };
       gameState = match.gameState;
       p.matchedFullName = match.name;
-      if (!p.pos){
-        const np = normalizePos(match.pos);
-        if (np) p.pos = np;
-      }
       const teamEntry = match.teamId ? allTeams.find(t => t.id === match.teamId) : null;
       redZoneFlag = !!(teamEntry && teamEntry.redZone);
       possessionFlag = !!(teamEntry && teamEntry.hasPossession);
@@ -1891,20 +1838,22 @@
     return { dir: newTotal >= prevTotal ? 'up' : 'down', isTDEvent, delta: newTotal - prevTotal, name: p.name, redZoneOnly: !scoreChanged };
   }
 
+  // First sync after turning Auto-Update on only sets a baseline (no toast flood for existing points).
+  let hasBaseline = false;
   async function pollLiveStats(){
     if (!state.autoOn) return;
     try {
       const { players: allPlayers, teams: allTeams } = await fetchLiveStatLines();
       const oldTotals = { espn: total('espn'), yahoo: total('yahoo') };
-      const changed = []; // {league, side, kind, idx, dir, isTDEvent, delta, name}
+      const changed = [];
 
       ['espn','yahoo'].forEach(league => {
         ['mine','opp'].forEach(side => {
           const sideData = getSide(league, side);
-          ['starters','bench'].forEach(kind => {
-            sideData[kind].forEach((p, idx) => {
+          [['starters','starter'], ['bench','bench']].forEach(([listKey, kind]) => {
+            sideData[listKey].forEach((p, idx) => {
               const result = processAutoPlayer(p, league, allPlayers, allTeams);
-              if (result) changed.push({ league, side, kind, idx, ...result });
+              if (result) changed.push({ league, side, kind, listKey, idx, ...result });
             });
           });
         });
@@ -1921,9 +1870,11 @@
             el.classList.add(cls);
             setTimeout(()=>el.classList.remove(cls), 1300);
           }
-          if (c.isTDEvent && c.side === 'mine') triggerTouchdown(c.name, c.delta);
-          const p = getSide(c.league, c.side)[c.kind][c.idx];
-          if (p && c.delta && c.kind === 'starter') queueToast(c.name, p.lastPlay || '', c.delta, parseFloat(p.points) || 0, c.side === 'opp');
+          if (c.isTDEvent && c.side === 'mine' && hasBaseline) triggerTouchdown(c.name, c.delta);
+          const p = getSide(c.league, c.side)[c.listKey][c.idx];
+          if (hasBaseline && p && c.delta && c.kind === 'starter'){
+            queueToast(c.name, p.lastPlay || '', c.delta, parseFloat(p.points) || 0, c.side === 'opp');
+          }
         });
         ['espn','yahoo'].forEach(league => {
           const totalEl = root.querySelector('.sb-card[data-card="'+league+'"] .league-total');
@@ -1931,6 +1882,7 @@
         });
       }
 
+      hasBaseline = true;
       state.autoStatus = 'Synced ' + new Date().toLocaleTimeString();
       state.autoError = null;
     } catch(err){
@@ -1946,6 +1898,7 @@
   function stopAutoInterval(){
     if (autoIntervalId) clearInterval(autoIntervalId);
     autoIntervalId = null;
+    hasBaseline = false;
   }
 
   (async () => {
