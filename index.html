@@ -246,38 +246,40 @@
       13:"Nachmans Nut Busters", 14:"Unexpected Concepcion"
     }
   };
+  // Each entry is [name, pos] so opponent rosters carry real position data up front — same as your own roster —
+  // instead of depending on live auto-sync to discover it.
   const OPP_ROSTERS = {
     yahoo: {
-      "TB12 Out of Retirement": ["Jahmyr Gibbs","Tee Higgins","Rhamondre Stevenson","Joe Burrow","Rome Odunze","C.J. Stroud","Jakobi Meyers","Isiah Pacheco"],
-      "QWST47": ["James Cook III","Cam Skattebo","Blake Corum","Drew Lock","Rico Dowdle","Jayden Daniels","Josh Jacobs","Adonai Mitchell"],
-      "It ain't easy being cheesy": ["Stefon Diggs","Josh Downs","Dontayvion Wicks","Jared Goff","Dallas Goedert","Nico Collins","AJ Brown","Kirk Cousins"],
-      "KOLDKASHKJP": ["Justin Jefferson","Terry McLaurin","Mike Evans","Brock Purdy","Colston Loveland","Kyle Pitts","Mike Washington","Zack Charbonnet"],
-      "David's Dastardly Team": ["Chase Brown","D'Andre Swift","George Pickens","DJ Moore","Carson Wentz","Sam Darnold","Chris Godwin Jr","Woody Marks"],
-      "Tigger's Amazing Team": ["Jaxson Smith-Njigba","DeVonta Smith","Garrett Wilson","Patrick Mahomes","Parker Washington","Jayden Reed","Denzel Boston","Malik Davis"],
-      "Jason Football": ["Derrick Henry","Chuba Hubbard","Malik Nabers","Daniel Jones","Ladd McConkey","Keenan Allen","Marcus Mariota"],
-      "Jenny's World-Class Team": ["Saquon Barkley","Breece Hall","Christian Watson","Baker Mayfield","Jonathan Brooks","Rashee Rice","Wandale Robinson","Aaron Rodgers"],
-      "Burp in a Bucket": ["Chris Olave","Trey McBride","Puka Nacua","Justin Herbert","JK Dobbins","Kyle Monangai","Rashod White","Jacoby Brissett"],
-      "Niner Faithful": ["Omarion Hampton","Brock Bowers","Jaydon Blue","Bryce Young","Jacory Croskey-Merritt","Bo Nix","Jordan Mason","Romeo Doubs"],
-      "Gargamel's Minions": ["A. Jeanty","Q. Judkins","B. Tuten","J. Allen","B. Thomas Jr.","C. Sutton","T. Allgeier","D. Samuel Sr."],
-      "Caleb's Choice Team": ["K. Walker III","T. Etienne Jr.","T. Kelce","D. Prescott","M. Harrison Jr.","A. Pierce","M. Pittman Jr.","M. Penix Jr."],
-      "OG Rump Shaker": ["C. McCaffrey","D. Metcalf","I. Likely","J. Addison","Z. Flowers","C. Williams","K. Gainwell","B. Robinson"],
-      "Bad Ass Bandits": ["D. Achane","J. Williams","M. Lloyd","T. Lawrence","K. Murray","J. Mason","K. Black","C. Douglas"],
-      "Heidi's Astounding Team": ["C. Lamb","J. Warren","J. Coker","J. Hurts","J. Williams","T. Kraft","H. Fannin Jr.","P. Freiermuth"],
-      "Coming 4 That G$ #goravens": ["K. Williams","D. Montgomery","B. Irving","L. Jackson","T. Shough","A. Jones Sr.","J. Johnson","X. Worthy"],
-      "kenny picksix (raiders...)": ["A. St. Brown","D. London","J. Waddle","G. Smith","L. Burden III","T. Warren","C. Rodriguez Jr.","F. Mendoza"],
-      "Scramblin' Egs": ["B. Robinson","M. Golden","S. LaPorta","M. Stafford","J. Love","G. Kittle","M. Lemon","A. Kamara"],
-      "Dream Crusher": ["J. Taylor","D. Adams","D. Kincaid","D. Maye","J. Love","C. Tate","R. Harvey","E. Johnson"]
+      "TB12 Out of Retirement": [["Jahmyr Gibbs","RB"],["Tee Higgins","WR"],["Rhamondre Stevenson","RB"],["Joe Burrow","QB"],["Rome Odunze","WR"],["C.J. Stroud","QB"],["Jakobi Meyers","WR"],["Isiah Pacheco","RB"]],
+      "QWST47": [["James Cook III","RB"],["Cam Skattebo","RB"],["Blake Corum","RB"],["Drew Lock","QB"],["Rico Dowdle","RB"],["Jayden Daniels","QB"],["Josh Jacobs","RB"],["Adonai Mitchell","WR"]],
+      "It ain't easy being cheesy": [["Stefon Diggs","WR"],["Josh Downs","WR"],["Dontayvion Wicks","WR"],["Jared Goff","QB"],["Dallas Goedert","TE"],["Nico Collins","WR"],["AJ Brown","WR"],["Kirk Cousins","QB"]],
+      "KOLDKASHKJP": [["Justin Jefferson","WR"],["Terry McLaurin","WR"],["Mike Evans","WR"],["Brock Purdy","QB"],["Colston Loveland","TE"],["Kyle Pitts","TE"],["Mike Washington","WR"],["Zack Charbonnet","RB"]],
+      "David's Dastardly Team": [["Chase Brown","RB"],["D'Andre Swift","RB"],["George Pickens","WR"],["DJ Moore","WR"],["Carson Wentz","QB"],["Sam Darnold","QB"],["Chris Godwin Jr","WR"],["Woody Marks","RB"]],
+      "Tigger's Amazing Team": [["Jaxson Smith-Njigba","WR"],["DeVonta Smith","WR"],["Garrett Wilson","WR"],["Patrick Mahomes","QB"],["Parker Washington","WR"],["Jayden Reed","WR"],["Denzel Boston","WR"],["Malik Davis","RB"]],
+      "Jason Football": [["Derrick Henry","RB"],["Chuba Hubbard","RB"],["Malik Nabers","WR"],["Daniel Jones","QB"],["Ladd McConkey","WR"],["Keenan Allen","WR"],["Marcus Mariota","QB"]],
+      "Jenny's World-Class Team": [["Saquon Barkley","RB"],["Breece Hall","RB"],["Christian Watson","WR"],["Baker Mayfield","QB"],["Jonathan Brooks","RB"],["Rashee Rice","WR"],["Wandale Robinson","WR"],["Aaron Rodgers","QB"]],
+      "Burp in a Bucket": [["Chris Olave","WR"],["Trey McBride","TE"],["Puka Nacua","WR"],["Justin Herbert","QB"],["JK Dobbins","RB"],["Kyle Monangai","RB"],["Rashod White","RB"],["Jacoby Brissett","QB"]],
+      "Niner Faithful": [["Omarion Hampton","RB"],["Brock Bowers","TE"],["Jaydon Blue","RB"],["Bryce Young","QB"],["Jacory Croskey-Merritt","RB"],["Bo Nix","QB"],["Jordan Mason","RB"],["Romeo Doubs","WR"]],
+      "Gargamel's Minions": [["A. Jeanty","RB"],["Q. Judkins","RB"],["B. Tuten","RB"],["J. Allen","QB"],["B. Thomas Jr.","WR"],["C. Sutton","WR"],["T. Allgeier","RB"],["D. Samuel Sr.","WR"]],
+      "Caleb's Choice Team": [["K. Walker III","RB"],["T. Etienne Jr.","RB"],["T. Kelce","TE"],["D. Prescott","QB"],["M. Harrison Jr.","WR"],["A. Pierce","WR"],["M. Pittman Jr.","WR"],["M. Penix Jr.","QB"]],
+      "OG Rump Shaker": [["C. McCaffrey","RB"],["D. Metcalf","WR"],["I. Likely","TE"],["J. Addison","WR"],["Z. Flowers","WR"],["C. Williams","QB"],["K. Gainwell","RB"],["B. Robinson","RB"]],
+      "Bad Ass Bandits": [["D. Achane","RB"],["J. Williams","RB"],["M. Lloyd","WR"],["T. Lawrence","QB"],["K. Murray","QB"],["J. Mason","RB"],["K. Black","RB"],["C. Douglas","WR"]],
+      "Heidi's Astounding Team": [["C. Lamb","WR"],["J. Warren","RB"],["J. Coker","WR"],["J. Hurts","QB"],["J. Williams","WR"],["T. Kraft","TE"],["H. Fannin Jr.","TE"],["P. Freiermuth","TE"]],
+      "Coming 4 That G$ #goravens": [["K. Williams","RB"],["D. Montgomery","RB"],["B. Irving","RB"],["L. Jackson","QB"],["T. Shough","QB"],["A. Jones Sr.","RB"],["J. Johnson","TE"],["X. Worthy","WR"]],
+      "kenny picksix (raiders...)": [["A. St. Brown","WR"],["D. London","WR"],["J. Waddle","WR"],["G. Smith","QB"],["L. Burden III","WR"],["T. Warren","TE"],["C. Rodriguez Jr.","RB"],["F. Mendoza","QB"]],
+      "Scramblin' Egs": [["B. Robinson","RB"],["M. Golden","WR"],["S. LaPorta","TE"],["M. Stafford","QB"],["J. Love","QB"],["G. Kittle","TE"],["M. Lemon","WR"],["A. Kamara","RB"]],
+      "Dream Crusher": [["J. Taylor","RB"],["D. Adams","WR"],["D. Kincaid","TE"],["D. Maye","QB"],["J. Love","QB"],["C. Tate","WR"],["R. Harvey","RB"],["E. Johnson","RB"]]
     },
     espn: {
-      "Druva's Daring Team": ["D. Maye","K. Walker III","O. Hampton","J. Smith-Njigba","D. London","T. Warren","T. Henderson","Patriots D/ST","H. Butker","C. Tate","J. Herbert","M. Golden","B. Nix","K. Monangai","A. Jones Sr.","A. Pierce"],
-      "Skibidi sahithyan": ["P. Mahomes","C. McCaffrey","K. Williams","C. Lamb","T. Higgins","D. Kincaid","D. Swift","Rams D/ST","K. Fairbairn","M. Nabers","S. LaPorta","T. Hockenson","Q. Johnston","R. Doubs","Chargers D/ST","B. Young"],
-      "Burp in a Bucket": ["L. Jackson","J. Gibbs","B. Irving","J. Waddle","M. Evans","T. Kelce","D. Montgomery","Eagles D/ST","E. McPherson","N. Collins","D. Prescott","R. Harvey","J. Downs","J. Johnson","L. Burden III","D. Vele","A. Brown"],
-      "Jai's Finest Team": ["J. Daniels","C. Brown","J. Williams","R. Rice","D. Smith","K. Pitts Sr.","Seahawks D/ST","J. Myers","M. Pittman Jr.","M. Harrison Jr.","T. Lawrence","D. Metcalf","W. Marks","T. Dell","J. Brooks"],
-      "Nachmans Nut Busters": ["J. Allen","J. Love","T. Etienne Jr.","X. Worthy","B. Thomas Jr.","I. Likely","B. Bowers","Broncos D/ST","C. Dicker","T. McLaurin","R. Odunze","K. Boutte","S. Diggs","K. Murray","D. Stribling"],
-      "Unexpected Concepcion": ["B. Purdy","B. Robinson","S. Barkley","C. Olave","P. Washington","G. Kittle","C. Skattebo","Vikings D/ST","T. Loop","E. Egbuka","W. Robinson","M. Wilson","B. Strange","K. Concepcion","R. Bateman","D. Boston","J. Mason"],
-      "Ballal's Best Team": ["J. Hurts","A. Jeanty","B. Hall","A. St. Brown","G. Pickens","M. Andrews","L. McConkey","Lions D/ST","E. Pineiro","C. Sutton","J. Price","J. Addison","J. Reed","J. Meyers","J. Croskey-Merritt","D. Samuel"],
-      "Anjan Diddles Chris' Toes": ["M. Stafford","J. Warren","T. Pollard","J. Jefferson","G. Wilson","J. Ferguson","J. Dobbins","Steelers D/ST","B. Aubrey","H. Mevis","M. Lemon","C. Loveland","C. Williams","Chiefs D/ST"],
-      "LeBron's Forehead Sweat": ["J. Burrow","D. Achane","D. Henry","D. Adams","J. Chase","T. Kraft","C. Hubbard","Giants D/ST","J. Bates","P. Nacua","R. Stevenson","B. Corum","Texans D/ST","D. Schultz","A. Mitchell","Z. Flowers"]
+      "Druva's Daring Team": [["D. Maye","QB"],["K. Walker III","RB"],["O. Hampton","RB"],["J. Smith-Njigba","WR"],["D. London","WR"],["T. Warren","TE"],["T. Henderson","RB"],["Patriots D/ST","DST"],["H. Butker","K"],["C. Tate","WR"],["J. Herbert","QB"],["M. Golden","WR"],["B. Nix","QB"],["K. Monangai","RB"],["A. Jones Sr.","RB"],["A. Pierce","WR"]],
+      "Skibidi sahithyan": [["P. Mahomes","QB"],["C. McCaffrey","RB"],["K. Williams","RB"],["C. Lamb","WR"],["T. Higgins","WR"],["D. Kincaid","TE"],["D. Swift","RB"],["Rams D/ST","DST"],["K. Fairbairn","K"],["M. Nabers","WR"],["S. LaPorta","TE"],["T. Hockenson","TE"],["Q. Johnston","WR"],["R. Doubs","WR"],["Chargers D/ST","DST"],["B. Young","QB"]],
+      "Burp in a Bucket": [["L. Jackson","QB"],["J. Gibbs","RB"],["B. Irving","RB"],["J. Waddle","WR"],["M. Evans","WR"],["T. Kelce","TE"],["D. Montgomery","RB"],["Eagles D/ST","DST"],["E. McPherson","K"],["N. Collins","WR"],["D. Prescott","QB"],["R. Harvey","RB"],["J. Downs","WR"],["J. Johnson","TE"],["L. Burden III","WR"],["D. Vele","WR"],["A. Brown","WR"]],
+      "Jai's Finest Team": [["J. Daniels","QB"],["C. Brown","RB"],["J. Williams","RB"],["R. Rice","WR"],["D. Smith","WR"],["K. Pitts Sr.","TE"],["Seahawks D/ST","DST"],["J. Myers","K"],["M. Pittman Jr.","WR"],["M. Harrison Jr.","WR"],["T. Lawrence","QB"],["D. Metcalf","WR"],["W. Marks","RB"],["T. Dell","WR"],["J. Brooks","RB"]],
+      "Nachmans Nut Busters": [["J. Allen","QB"],["J. Love","QB"],["T. Etienne Jr.","RB"],["X. Worthy","WR"],["B. Thomas Jr.","WR"],["I. Likely","TE"],["B. Bowers","TE"],["Broncos D/ST","DST"],["C. Dicker","K"],["T. McLaurin","WR"],["R. Odunze","WR"],["K. Boutte","WR"],["S. Diggs","WR"],["K. Murray","QB"],["D. Stribling","WR"]],
+      "Unexpected Concepcion": [["B. Purdy","QB"],["B. Robinson","RB"],["S. Barkley","RB"],["C. Olave","WR"],["P. Washington","WR"],["G. Kittle","TE"],["C. Skattebo","RB"],["Vikings D/ST","DST"],["T. Loop","K"],["E. Egbuka","WR"],["W. Robinson","WR"],["M. Wilson","WR"],["B. Strange","WR"],["K. Concepcion","WR"],["R. Bateman","WR"],["D. Boston","WR"],["J. Mason","RB"]],
+      "Ballal's Best Team": [["J. Hurts","QB"],["A. Jeanty","RB"],["B. Hall","RB"],["A. St. Brown","WR"],["G. Pickens","WR"],["M. Andrews","TE"],["L. McConkey","WR"],["Lions D/ST","DST"],["E. Pineiro","K"],["C. Sutton","WR"],["J. Price","RB"],["J. Addison","WR"],["J. Reed","WR"],["J. Meyers","WR"],["J. Croskey-Merritt","RB"],["D. Samuel","WR"]],
+      "Anjan Diddles Chris' Toes": [["M. Stafford","QB"],["J. Warren","RB"],["T. Pollard","RB"],["J. Jefferson","WR"],["G. Wilson","WR"],["J. Ferguson","TE"],["J. Dobbins","RB"],["Steelers D/ST","DST"],["B. Aubrey","K"],["H. Mevis","K"],["M. Lemon","WR"],["C. Loveland","TE"],["C. Williams","QB"],["Chiefs D/ST","DST"]],
+      "LeBron's Forehead Sweat": [["J. Burrow","QB"],["D. Achane","RB"],["D. Henry","RB"],["D. Adams","WR"],["J. Chase","WR"],["T. Kraft","TE"],["C. Hubbard","RB"],["Giants D/ST","DST"],["J. Bates","K"],["P. Nacua","WR"],["R. Stevenson","RB"],["B. Corum","RB"],["Texans D/ST","DST"],["D. Schultz","TE"],["A. Mitchell","WR"],["Z. Flowers","WR"]]
     }
   };
   function blankOpponent(league){
@@ -300,7 +302,7 @@
         data[league].opponent.name = oppName;
         const roster = (OPP_ROSTERS[league] || {})[oppName];
         if (roster && data[league].opponent.bench.length === 0){
-          data[league].opponent.bench = roster.map(name => ({name, points:'', lastPlay:''}));
+          data[league].opponent.bench = roster.map(([name, pos]) => ({name, pos, points:'', lastPlay:''}));
         }
       }
     });
@@ -362,6 +364,8 @@
     root.removeEventListener('click', unlockAudioOnce);
   }, { once: true });
   let state = { week: 1, activeTab: 'espn', activeSide: 'mine', data: {}, openLog: null, autoOn: false, autoStatus: 'Off', autoError: null, mvpData: null, mvpLoading: false, recapOpen: null, soundOn: true, toastOn: true, showCoverageInfo: false };
+  let toastQueue = [];
+  let toastShowing = false;
   let saveTimer = null;
   let autoIntervalId = null;
 
@@ -1286,7 +1290,6 @@
           }
           bumpTotals(league, true);
           if (isTD) triggerTouchdown(p.name || 'Your player', delta);
-          if (kind === 'starter' && delta) queueToast(p.name || 'Player', p.lastPlay || '', delta, parseFloat(p.points) || 0, side === 'opp');
         });
       }
     });
@@ -1405,6 +1408,7 @@
     }
     const matchupEl = root.querySelector('.sb-card[data-card="'+league+'"] .matchup-vs');
     if (matchupEl){
+      const wrap = matchupEl.parentElement;
       matchupEl.outerHTML = renderMatchupLine(league);
     }
     if (bump && cardEl){ cardEl.classList.add('bump'); setTimeout(()=>cardEl.classList.remove('bump'), 500); }
@@ -1413,6 +1417,25 @@
   function updateAutoStatusDOM(){
     const el = root.querySelector('.auto-status');
     if (el) el.textContent = state.autoError ? state.autoError : state.autoStatus;
+  }
+
+  function updatePlayerDOM(league, kind, idx, p, prevPoints){
+    const block = root.querySelector(`.row-block[data-league="${league}"][data-kind="${kind}"][data-idx="${idx}"]`);
+    if (!block) return;
+    const ptsInput = block.querySelector('.pts-input');
+    if (ptsInput) ptsInput.value = p.points;
+    const lastPlayEl = block.querySelector('.last-play');
+    if (lastPlayEl){
+      lastPlayEl.textContent = p.lastPlay || '—';
+      lastPlayEl.classList.remove('empty');
+      lastPlayEl.classList.add('pop');
+      setTimeout(()=>lastPlayEl.classList.remove('pop'), 500);
+    }
+    const prev = parseFloat(prevPoints) || 0;
+    const now = parseFloat(p.points) || 0;
+    const cls = now < prev ? 'flash-down' : 'flash-up';
+    block.classList.add(cls);
+    setTimeout(()=>block.classList.remove(cls), 1300);
   }
 
   let audioCtx = null;
@@ -1473,23 +1496,33 @@
     clearTimeout(tdTimer);
   }
 
-  // Stacking toasts: green = my player, red = opponent player (starters only)
   function queueToast(name, eventText, delta, weekTotal, isOpp){
     if (!state.toastOn) return;
+    toastQueue.push({ name, eventText, delta, weekTotal, isOpp });
+    processToastQueue();
+  }
+  function processToastQueue(){
+    if (toastShowing || !toastQueue.length) return;
+    toastShowing = true;
+    const t = toastQueue.shift();
     const el = document.createElement('div');
-    el.className = 'ft-toast-card' + (isOpp ? ' toast-opp' : '');
-    const d = Number(delta);
+    el.className = 'ft-toast-card' + (t.isOpp ? ' toast-opp' : '');
+    const d = Number(t.delta);
     el.innerHTML = `
       <div class="ft-toast-top">
-        <span class="ft-toast-name">${escapeAttr(name)}</span>
+        <span class="ft-toast-name">${escapeAttr(t.name)}</span>
         <span class="ft-toast-delta">${!isNaN(d) ? ((d>=0?'+':'') + d.toFixed(2)) : ''}</span>
       </div>
-      <div class="ft-toast-event">${escapeAttr(eventText || '')}</div>
-      <div class="ft-toast-weektotal">${(weekTotal||0).toFixed(2)} pts this week</div>
+      <div class="ft-toast-event">${escapeAttr(t.eventText || '')}</div>
+      <div class="ft-toast-weektotal">${(t.weekTotal||0).toFixed(2)} pts this week</div>
     `;
-    const dismiss = () => { if (el.parentNode) el.remove(); };
+    const dismiss = () => {
+      if (!el.parentNode) return;
+      el.remove();
+      toastShowing = false;
+      processToastQueue();
+    };
     el.addEventListener('click', dismiss);
-    while (toastStack.children.length >= 4) toastStack.firstChild.remove();
     toastStack.appendChild(el);
     setTimeout(dismiss, 5300);
   }
@@ -1507,6 +1540,16 @@
     const a = lastNameInitial(rosterName), b = lastNameInitial(statName);
     if (!a || !b) return false;
     return a.initial === b.initial && a.last === b.last;
+  }
+  function normalizePos(raw){
+    if (!raw) return null;
+    const r = String(raw).toUpperCase();
+    if (r === 'QB') return 'QB';
+    if (['RB','HB','FB'].includes(r)) return 'RB';
+    if (r === 'WR') return 'WR';
+    if (r === 'TE') return 'TE';
+    if (['K','PK'].includes(r)) return 'K';
+    return null;
   }
   const SCORING = {
     espn:  { passYdsPerPt: 25, passTD: 4, rushYdsPerPt: 10, rushTD: 6, recYdsPerPt: 10, recTD: 6, int: -2, fumLost: -2 },
@@ -1699,9 +1742,13 @@
               const stats = a.stats || [];
               const num = (i) => (i >= 0 && stats[i] !== undefined) ? (parseFloat(stats[i]) || 0) : 0;
               let entry = allPlayers.find(p => p.name === nm);
-              if (!entry){ entry = {name: nm, passYds:0,passTD:0,int:0,rushYds:0,rushTD:0,recYds:0,recTD:0,rec:0,fumLost:0,fgMake:0,fgAtt:0,fgMiss:0,patMade:0,patAtt:0}; allPlayers.push(entry); }
+              if (!entry){ entry = {name: nm, pos:null, passYds:0,passTD:0,int:0,rushYds:0,rushTD:0,recYds:0,recTD:0,rec:0,fumLost:0,fgMake:0,fgAtt:0,fgMiss:0,patMade:0,patAtt:0}; allPlayers.push(entry); }
               entry.gameState = evState;
               entry.teamId = teamId;
+              if (!entry.pos){
+                const posAbbr = a.athlete && a.athlete.position && (a.athlete.position.abbreviation || a.athlete.position.name);
+                if (posAbbr) entry.pos = posAbbr;
+              }
               if (cat.name === 'passing'){ entry.passYds += num(ydsIdx); entry.passTD += num(tdIdx); entry.int += num(intIdx); }
               else if (cat.name === 'rushing'){ entry.rushYds += num(ydsIdx); entry.rushTD += num(tdIdx); }
               else if (cat.name === 'receiving'){ entry.recYds += num(ydsIdx); entry.recTD += num(tdIdx); entry.rec += num(recIdx); }
@@ -1752,6 +1799,7 @@
       desc = describeDeltaDST(p.autoStats || {}, match);
       newStats = { pointsAllowed: match.pointsAllowed, yardsAllowed: match.yardsAllowed, sacks: match.sacks, int: match.int, fumRec: match.fumRec };
       gameState = match.gameState;
+      if (!p.pos) p.pos = 'DST';
       return true;
     };
     const tryK = (candidate) => {
@@ -1761,6 +1809,7 @@
       desc = describeDeltaK(p.autoStats || {}, match);
       newStats = { patMade: match.patMade, fgMiss: match.fgMiss };
       gameState = match.gameState;
+      if (!p.pos) p.pos = 'K';
       return true;
     };
     const statSignature = (c) => {
@@ -1798,6 +1847,10 @@
       newStats = { passYds:match.passYds, passTD:match.passTD, int:match.int, rushYds:match.rushYds, rushTD:match.rushTD, recYds:match.recYds, recTD:match.recTD, rec:match.rec, fumLost:match.fumLost };
       gameState = match.gameState;
       p.matchedFullName = match.name;
+      if (!p.pos){
+        const np = normalizePos(match.pos);
+        if (np) p.pos = np;
+      }
       const teamEntry = match.teamId ? allTeams.find(t => t.id === match.teamId) : null;
       redZoneFlag = !!(teamEntry && teamEntry.redZone);
       possessionFlag = !!(teamEntry && teamEntry.hasPossession);
@@ -1838,22 +1891,20 @@
     return { dir: newTotal >= prevTotal ? 'up' : 'down', isTDEvent, delta: newTotal - prevTotal, name: p.name, redZoneOnly: !scoreChanged };
   }
 
-  // First sync after turning Auto-Update on only sets a baseline (no toast flood for existing points).
-  let hasBaseline = false;
   async function pollLiveStats(){
     if (!state.autoOn) return;
     try {
       const { players: allPlayers, teams: allTeams } = await fetchLiveStatLines();
       const oldTotals = { espn: total('espn'), yahoo: total('yahoo') };
-      const changed = [];
+      const changed = []; // {league, side, kind, idx, dir, isTDEvent, delta, name}
 
       ['espn','yahoo'].forEach(league => {
         ['mine','opp'].forEach(side => {
           const sideData = getSide(league, side);
-          [['starters','starter'], ['bench','bench']].forEach(([listKey, kind]) => {
-            sideData[listKey].forEach((p, idx) => {
+          ['starters','bench'].forEach(kind => {
+            sideData[kind].forEach((p, idx) => {
               const result = processAutoPlayer(p, league, allPlayers, allTeams);
-              if (result) changed.push({ league, side, kind, listKey, idx, ...result });
+              if (result) changed.push({ league, side, kind, idx, ...result });
             });
           });
         });
@@ -1870,11 +1921,9 @@
             el.classList.add(cls);
             setTimeout(()=>el.classList.remove(cls), 1300);
           }
-          if (c.isTDEvent && c.side === 'mine' && hasBaseline) triggerTouchdown(c.name, c.delta);
-          const p = getSide(c.league, c.side)[c.listKey][c.idx];
-          if (hasBaseline && p && c.delta && c.kind === 'starter'){
-            queueToast(c.name, p.lastPlay || '', c.delta, parseFloat(p.points) || 0, c.side === 'opp');
-          }
+          if (c.isTDEvent && c.side === 'mine') triggerTouchdown(c.name, c.delta);
+          const p = getSide(c.league, c.side)[c.kind][c.idx];
+          if (p && c.delta && c.kind === 'starter') queueToast(c.name, p.lastPlay || '', c.delta, parseFloat(p.points) || 0, c.side === 'opp');
         });
         ['espn','yahoo'].forEach(league => {
           const totalEl = root.querySelector('.sb-card[data-card="'+league+'"] .league-total');
@@ -1882,7 +1931,6 @@
         });
       }
 
-      hasBaseline = true;
       state.autoStatus = 'Synced ' + new Date().toLocaleTimeString();
       state.autoError = null;
     } catch(err){
@@ -1898,7 +1946,6 @@
   function stopAutoInterval(){
     if (autoIntervalId) clearInterval(autoIntervalId);
     autoIntervalId = null;
-    hasBaseline = false;
   }
 
   (async () => {
