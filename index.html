@@ -229,6 +229,76 @@
     return null; // FLEX / W-R-T / Q-W-R-T are ambiguous — needs manual tag
   }
 
+  // ---------- Player position lookup (needed for Start/Sit Accuracy + Optimal Lineup) ----------
+  let posMap = null; // "f|last" -> ['QB','WR',...]
+  function posKey(n){ const a = lastNameInitial(n); return a ? a.initial + '|' + a.last : null; }
+  function normPos(a){
+    a = String(a||'').toUpperCase();
+    if (a === 'PK') return 'K';
+    if (a === 'FB' || a === 'HB') return 'RB';
+    return ['QB','RB','WR','TE','K'].includes(a) ? a : null;
+  }
+  async function loadPositionMap(){
+    try {
+      const cached = JSON.parse(localStorage.getItem('nfl:posmap:v1') || 'null');
+      if (cached && cached.map && Date.now() - cached.ts < 7*24*3600*1000){ posMap = cached.map; return; }
+    } catch(e){}
+    try {
+      const tRes = await fetch('https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams');
+      if (!tRes.ok) return;
+      const tj = await tRes.json();
+      const ids = (((tj.sports||[])[0]||{}).leagues||[])[0].teams.map(t => t.team.id);
+      const map = {};
+      await Promise.all(ids.map(async id => {
+        try {
+          const r = await fetch('https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/' + id + '/roster');
+          if (!r.ok) return;
+          const j = await r.json();
+          (j.athletes || []).forEach(group => (group.items || []).forEach(a => {
+            const pos = normPos(a.position && a.position.abbreviation);
+            const k = posKey(a.displayName || a.fullName);
+            if (!pos || !k) return;
+            if (!map[k]) map[k] = [];
+            if (!map[k].includes(pos)) map[k].push(pos);
+          }));
+        } catch(e){}
+      }));
+      if (Object.keys(map).length){
+        posMap = map;
+        try { localStorage.setItem('nfl:posmap:v1', JSON.stringify({ ts: Date.now(), map })); } catch(e){}
+      }
+    } catch(e){}
+  }
+  function resolvePos(p){
+    if (!p || !p.name || !p.name.trim() || p.posManual) return;
+    const nm = p.name.trim();
+    if (/D\/ST$/i.test(nm)){ p.pos = 'DST'; return; }
+    const slotPos = p.slot ? inferPosFromSlot(p.slot) : null;
+    if (slotPos){ p.pos = slotPos; return; }
+    if (p.pos) return;
+    const cands = posMap && posMap[posKey(nm)];
+    if (!cands || !cands.length) return;
+    let pick = cands[0];
+    if (p.slot){
+      const el = slotEligibility(p.slot);
+      const f = cands.find(c => el.includes(c));
+      if (f) pick = f;
+    }
+    p.pos = pick;
+  }
+  function fillPositions(data){
+    if (!data) return;
+    ['espn','yahoo'].forEach(lg => {
+      const d = data[lg];
+      if (!d) return;
+      [d, d.opponent].forEach(side => {
+        if (!side) return;
+        (side.starters || []).forEach(resolvePos);
+        (side.bench || []).forEach(resolvePos);
+      });
+    });
+  }
+
   // ---------- Matchup schedule + known opponent rosters ----------
   const SCHEDULE = {
     yahoo: {
@@ -364,8 +434,6 @@
     root.removeEventListener('click', unlockAudioOnce);
   }, { once: true });
   let state = { week: 1, activeTab: 'espn', activeSide: 'mine', data: {}, openLog: null, autoOn: false, autoStatus: 'Off', autoError: null, mvpData: null, mvpLoading: false, recapOpen: null, soundOn: true, toastOn: true, showCoverageInfo: false };
-  let toastQueue = [];
-  let toastShowing = false;
   let saveTimer = null;
   let autoIntervalId = null;
 
@@ -401,6 +469,7 @@
       state.data = seedData();
     }
     applySchedule(state.data, w);
+    fillPositions(state.data);
     state.openLog = null;
     state.activeSide = 'mine';
     render();
@@ -644,6 +713,7 @@
   }
 
   async function computeSeasonStats(){
+    if (!posMap) await loadPositionMap();
     const totals = { espn: {}, yahoo: {} };
     const benchTotals = { espn: {}, yahoo: {} };
     const trend = { espn: [], yahoo: [] };
@@ -654,6 +724,7 @@
         const res = await window.storage.get(weekKey(w), false);
         if (!res) continue;
         const wd = JSON.parse(res.value);
+        fillPositions(wd);
         ['espn','yahoo'].forEach(league => {
           if (!wd[league]) return;
           if (wd[league].result === 'W') record[league].w++;
@@ -1125,6 +1196,8 @@
               list[idx].gameState = undefined;
               list[idx].redZone = false;
               list[idx].pos = kind === 'starter' ? (inferPosFromSlot(list[idx].slot) || undefined) : undefined;
+              list[idx].posManual = false;
+              resolvePos(list[idx]);
               const ptsEl = blockEl.querySelector('.pts-input');
               if (ptsEl) ptsEl.value = '';
               const lpEl = blockEl.querySelector('.crow-lastplay');
@@ -1255,7 +1328,7 @@
 
           const p = list[idx];
           if (projInput && projInput.value !== '') p.proj = projInput.value;
-          if (posInput && posInput.value !== '') p.pos = posInput.value;
+          if (posInput && posInput.value !== ''){ p.pos = posInput.value; p.posManual = true; }
 
           if (!hasPlayUpdate){
             state.openLog = null;
@@ -1290,6 +1363,7 @@
           }
           bumpTotals(league, true);
           if (isTD) triggerTouchdown(p.name || 'Your player', delta);
+          if (kind === 'starter' && delta) queueToast(p.name || 'Player', p.lastPlay || '', delta, parseFloat(p.points) || 0, side === 'opp');
         });
       }
     });
@@ -1318,6 +1392,7 @@
           }
         });
         applySchedule(cloned, nextWeek);
+        fillPositions(cloned);
         await window.storage.set(weekKey(nextWeek), JSON.stringify(cloned), false);
         state.week = nextWeek;
         state.data = cloned;
@@ -1408,7 +1483,6 @@
     }
     const matchupEl = root.querySelector('.sb-card[data-card="'+league+'"] .matchup-vs');
     if (matchupEl){
-      const wrap = matchupEl.parentElement;
       matchupEl.outerHTML = renderMatchupLine(league);
     }
     if (bump && cardEl){ cardEl.classList.add('bump'); setTimeout(()=>cardEl.classList.remove('bump'), 500); }
@@ -1417,25 +1491,6 @@
   function updateAutoStatusDOM(){
     const el = root.querySelector('.auto-status');
     if (el) el.textContent = state.autoError ? state.autoError : state.autoStatus;
-  }
-
-  function updatePlayerDOM(league, kind, idx, p, prevPoints){
-    const block = root.querySelector(`.row-block[data-league="${league}"][data-kind="${kind}"][data-idx="${idx}"]`);
-    if (!block) return;
-    const ptsInput = block.querySelector('.pts-input');
-    if (ptsInput) ptsInput.value = p.points;
-    const lastPlayEl = block.querySelector('.last-play');
-    if (lastPlayEl){
-      lastPlayEl.textContent = p.lastPlay || '—';
-      lastPlayEl.classList.remove('empty');
-      lastPlayEl.classList.add('pop');
-      setTimeout(()=>lastPlayEl.classList.remove('pop'), 500);
-    }
-    const prev = parseFloat(prevPoints) || 0;
-    const now = parseFloat(p.points) || 0;
-    const cls = now < prev ? 'flash-down' : 'flash-up';
-    block.classList.add(cls);
-    setTimeout(()=>block.classList.remove(cls), 1300);
   }
 
   let audioCtx = null;
@@ -1496,33 +1551,23 @@
     clearTimeout(tdTimer);
   }
 
+  // Stacking toasts: green = my player, red = opponent player (starters only)
   function queueToast(name, eventText, delta, weekTotal, isOpp){
     if (!state.toastOn) return;
-    toastQueue.push({ name, eventText, delta, weekTotal, isOpp });
-    processToastQueue();
-  }
-  function processToastQueue(){
-    if (toastShowing || !toastQueue.length) return;
-    toastShowing = true;
-    const t = toastQueue.shift();
     const el = document.createElement('div');
-    el.className = 'ft-toast-card' + (t.isOpp ? ' toast-opp' : '');
-    const d = Number(t.delta);
+    el.className = 'ft-toast-card' + (isOpp ? ' toast-opp' : '');
+    const d = Number(delta);
     el.innerHTML = `
       <div class="ft-toast-top">
-        <span class="ft-toast-name">${escapeAttr(t.name)}</span>
+        <span class="ft-toast-name">${escapeAttr(name)}</span>
         <span class="ft-toast-delta">${!isNaN(d) ? ((d>=0?'+':'') + d.toFixed(2)) : ''}</span>
       </div>
-      <div class="ft-toast-event">${escapeAttr(t.eventText || '')}</div>
-      <div class="ft-toast-weektotal">${(t.weekTotal||0).toFixed(2)} pts this week</div>
+      <div class="ft-toast-event">${escapeAttr(eventText || '')}</div>
+      <div class="ft-toast-weektotal">${(weekTotal||0).toFixed(2)} pts this week</div>
     `;
-    const dismiss = () => {
-      if (!el.parentNode) return;
-      el.remove();
-      toastShowing = false;
-      processToastQueue();
-    };
+    const dismiss = () => { if (el.parentNode) el.remove(); };
     el.addEventListener('click', dismiss);
+    while (toastStack.children.length >= 4) toastStack.firstChild.remove();
     toastStack.appendChild(el);
     setTimeout(dismiss, 5300);
   }
@@ -1891,20 +1936,22 @@
     return { dir: newTotal >= prevTotal ? 'up' : 'down', isTDEvent, delta: newTotal - prevTotal, name: p.name, redZoneOnly: !scoreChanged };
   }
 
+  // First sync after turning Auto-Update on only sets a baseline (no toast flood for existing points).
+  let hasBaseline = false;
   async function pollLiveStats(){
     if (!state.autoOn) return;
     try {
       const { players: allPlayers, teams: allTeams } = await fetchLiveStatLines();
       const oldTotals = { espn: total('espn'), yahoo: total('yahoo') };
-      const changed = []; // {league, side, kind, idx, dir, isTDEvent, delta, name}
+      const changed = [];
 
       ['espn','yahoo'].forEach(league => {
         ['mine','opp'].forEach(side => {
           const sideData = getSide(league, side);
-          ['starters','bench'].forEach(kind => {
-            sideData[kind].forEach((p, idx) => {
+          [['starters','starter'], ['bench','bench']].forEach(([listKey, kind]) => {
+            sideData[listKey].forEach((p, idx) => {
               const result = processAutoPlayer(p, league, allPlayers, allTeams);
-              if (result) changed.push({ league, side, kind, idx, ...result });
+              if (result) changed.push({ league, side, kind, listKey, idx, ...result });
             });
           });
         });
@@ -1921,9 +1968,11 @@
             el.classList.add(cls);
             setTimeout(()=>el.classList.remove(cls), 1300);
           }
-          if (c.isTDEvent && c.side === 'mine') triggerTouchdown(c.name, c.delta);
-          const p = getSide(c.league, c.side)[c.kind][c.idx];
-          if (p && c.delta && c.kind === 'starter') queueToast(c.name, p.lastPlay || '', c.delta, parseFloat(p.points) || 0, c.side === 'opp');
+          if (c.isTDEvent && c.side === 'mine' && hasBaseline) triggerTouchdown(c.name, c.delta);
+          const p = getSide(c.league, c.side)[c.listKey][c.idx];
+          if (hasBaseline && p && c.delta && c.kind === 'starter'){
+            queueToast(c.name, p.lastPlay || '', c.delta, parseFloat(p.points) || 0, c.side === 'opp');
+          }
         });
         ['espn','yahoo'].forEach(league => {
           const totalEl = root.querySelector('.sb-card[data-card="'+league+'"] .league-total');
@@ -1931,6 +1980,7 @@
         });
       }
 
+      hasBaseline = true;
       state.autoStatus = 'Synced ' + new Date().toLocaleTimeString();
       state.autoError = null;
     } catch(err){
@@ -1946,6 +1996,7 @@
   function stopAutoInterval(){
     if (autoIntervalId) clearInterval(autoIntervalId);
     autoIntervalId = null;
+    hasBaseline = false;
   }
 
   (async () => {
@@ -1953,7 +2004,10 @@
       const wk = await fetchCurrentNFLWeek();
       if (wk) state.week = wk;
     } catch(e){ /* fall back to default week */ }
-    loadWeek(state.week);
+    await loadWeek(state.week);
+    loadPositionMap().then(() => {
+      if (posMap){ fillPositions(state.data); scheduleSave(); if (!state.openLog) render(); }
+    });
   })();
 })();
 </script>
