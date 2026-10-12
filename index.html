@@ -698,8 +698,8 @@
     const slots = d.starters.map((s,i) => ({ idx:i, slot:s.slot, eligible: slotEligibility(s.slot) }));
     const sortedSlots = [...slots].sort((a,b) => a.eligible.length - b.eligible.length);
     const pool = [];
-    (d.starters||[]).forEach(p => { if (p.name && p.name.trim() && p.pos){ const v=parseFloat(p.points); pool.push({name:p.name,pos:p.pos,points:isNaN(v)?0:v}); } });
-    (d.bench||[]).forEach(p => { if (p.name && p.name.trim() && p.pos){ const v=parseFloat(p.points); pool.push({name:p.name,pos:p.pos,points:isNaN(v)?0:v}); } });
+    (d.starters||[]).forEach(p => { if (p.name && p.name.trim()){ const v=parseFloat(p.points); pool.push({name:p.name,pos:p.pos||'UNK',points:isNaN(v)?0:v}); } });
+    (d.bench||[]).forEach(p => { if (p.name && p.name.trim()){ const v=parseFloat(p.points); pool.push({name:p.name,pos:p.pos||'UNK',points:isNaN(v)?0:v}); } });
     const remaining = [...pool].sort((a,b)=>b.points-a.points);
     const usedNames = new Set();
     let optimalTotal = 0;
@@ -835,11 +835,11 @@
     if (slot === 'RB') return ['RB'];
     if (slot === 'WR') return ['WR'];
     if (slot === 'TE') return ['TE'];
-    if (slot === 'FLEX') return ['RB','WR','TE'];
+    if (slot === 'FLEX') return ['RB','WR','TE','UNK'];
     if (slot === 'D/ST') return ['DST'];
     if (slot === 'K') return ['K'];
-    if (slot === 'W/R/T') return ['RB','WR','TE'];
-    if (slot === 'Q/W/R/T') return ['QB','RB','WR','TE'];
+    if (slot === 'W/R/T') return ['RB','WR','TE','UNK'];
+    if (slot === 'Q/W/R/T') return ['QB','RB','WR','TE','UNK'];
     return [];
   }
 
@@ -852,15 +852,15 @@
     let unranked = 0;
     d.starters.forEach((p) => {
       if (!p.name || !p.name.trim()) return;
-      if (!p.pos){ unranked++; return; }
+      if (!p.pos) unranked++;
       const v = parseFloat(p.points);
-      pool.push({ name: p.name, pos: p.pos, points: isNaN(v) ? 0 : v });
+      pool.push({ name: p.name, pos: p.pos || 'UNK', points: isNaN(v) ? 0 : v });
     });
     d.bench.forEach((p) => {
       if (!p.name || !p.name.trim()) return;
-      if (!p.pos){ unranked++; return; }
+      if (!p.pos) unranked++;
       const v = parseFloat(p.points);
-      pool.push({ name: p.name, pos: p.pos, points: isNaN(v) ? 0 : v });
+      pool.push({ name: p.name, pos: p.pos || 'UNK', points: isNaN(v) ? 0 : v });
     });
 
     const remaining = [...pool].sort((a,b) => b.points - a.points);
@@ -904,7 +904,7 @@
         ${r.swaps.length ? r.swaps.map(s => `
           <div class="recap-row"><span class="recap-label">${s.slot}</span><span class="recap-value">${escapeAttr(s.out)} (${s.outPts.toFixed(1)}) → ${escapeAttr(s.in)} (${s.inPts.toFixed(1)})</span></div>
         `).join('') : `<div class="recap-row"><span class="recap-label">Lineup</span><span class="recap-value">Already optimal 🎉</span></div>`}
-        ${r.unranked > 0 ? `<div class="empty-hint" style="margin-top:8px;">${r.unranked} player(s) don't have a position tagged yet, so they can't be checked. Tap ⚡ on them and set Pos.</div>` : ''}
+        ${r.unranked > 0 ? `<div class="empty-hint" style="margin-top:8px;">${r.unranked} player(s) have no position yet, so they're treated as FLEX-eligible. Tap ⚡ and set Pos for an exact result.</div>` : ''}
         <button class="recap-close-btn" data-action="recap-close">Close</button>
       </div>
     `;
@@ -1309,6 +1309,17 @@
         });
       }
 
+      const posSel = blockEl.querySelector('.log-pos');
+      if (posSel){
+        posSel.addEventListener('change', () => {
+          list[idx].pos = posSel.value || undefined;
+          list[idx].posManual = !!posSel.value;
+          if (!posSel.value) resolvePos(list[idx]);
+          scheduleSave();
+          render();
+        });
+      }
+
       const cancelBtn = blockEl.querySelector('button[data-action="log-cancel"]');
       if (cancelBtn){ cancelBtn.addEventListener('click', () => { state.openLog = null; render(); }); }
 
@@ -1413,14 +1424,16 @@
 
     const recapBtn = root.querySelector('#recap-btn');
     if (recapBtn){
-      recapBtn.addEventListener('click', () => {
+      recapBtn.addEventListener('click', async () => {
+        if (!posMap){ await loadPositionMap(); fillPositions(state.data); }
         state.recapOpen = { league: recapBtn.dataset.league, mode: 'recap' };
         render();
       });
     }
     const optimalBtn = root.querySelector('#optimal-btn');
     if (optimalBtn){
-      optimalBtn.addEventListener('click', () => {
+      optimalBtn.addEventListener('click', async () => {
+        if (!posMap){ await loadPositionMap(); fillPositions(state.data); }
         state.recapOpen = { league: optimalBtn.dataset.league, mode: 'optimal' };
         render();
       });
