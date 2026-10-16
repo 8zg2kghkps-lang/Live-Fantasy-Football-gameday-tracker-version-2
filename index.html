@@ -712,6 +712,7 @@
     return Math.min(100, Math.round((actualTotal / optimalTotal) * 1000) / 10);
   }
 
+  const MIN_AWARD_WEEKS = 3; // players need at least this many weeks on your roster to qualify for awards
   async function computeSeasonStats(){
     if (!posMap) await loadPositionMap();
     const totals = { espn: {}, yahoo: {} };
@@ -776,8 +777,9 @@
     });
     const rank = (obj, dir, league) => Object.entries(obj)
       .filter(([name]) => currentRoster[league].has(name))
-      .map(([name, d]) => ({ name, total: Math.round(d.total * 100) / 100, weeks: d.weeks }))
-      .sort((a, b) => dir === 'desc' ? b.total - a.total : a.total - b.total)
+      .filter(([, d]) => d.weeks >= MIN_AWARD_WEEKS)
+      .map(([name, d]) => ({ name, total: Math.round(d.total * 100) / 100, weeks: d.weeks, avg: d.total / d.weeks }))
+      .sort((a, b) => dir === 'desc' ? b.avg - a.avg : a.avg - b.avg)
       .slice(0, 3);
     const avg = arr => arr.length ? Math.round((arr.reduce((a,b)=>a+b,0) / arr.length) * 10) / 10 : null;
     state.mvpData = {
@@ -963,9 +965,9 @@
           <div class="mvp-row">
             <span class="mvp-rank">${icons[i]||''}</span>
             <span class="mvp-name">${escapeAttr(p.name)}</span>
-            <span class="mvp-total">${p.total.toFixed(2)}</span>
+            <span class="mvp-total" title="${p.total.toFixed(2)} total points">${p.avg.toFixed(1)} <span style="font-size:10px; color:var(--text-dim); font-weight:400;">avg · ${p.weeks}w</span></span>
           </div>
-        `).join('') : `<div class="empty-hint">Not enough season data yet.</div>`}
+        `).join('') : `<div class="empty-hint">Needs ${MIN_AWARD_WEEKS}+ weeks of data.</div>`}
       </div>`;
     return `
       <div class="mvp-section">
@@ -994,14 +996,14 @@
         </div>
       </div>
       <div class="mvp-section">
-        <div class="section-label">🏆 Fantasy MVP Race — top 3 by season points</div>
+        <div class="section-label">🏆 Fantasy MVP Race — top 3 by avg points/week (min ${MIN_AWARD_WEEKS} weeks)</div>
         <div class="mvp-cols">
           ${renderCol('ESPN', d.espn.top, medals)}
           ${renderCol('Yahoo', d.yahoo.top, medals)}
         </div>
       </div>
       <div class="mvp-section">
-        <div class="section-label">🧊 Bust of the Year — bottom 3 by season points</div>
+        <div class="section-label">🧊 Bust of the Year — bottom 3 by avg points/week (min ${MIN_AWARD_WEEKS} weeks)</div>
         <div class="mvp-cols">
           ${renderCol('ESPN', d.espn.bottom, busts)}
           ${renderCol('Yahoo', d.yahoo.bottom, busts)}
@@ -1009,7 +1011,7 @@
         </div>
       </div>
       <div class="mvp-section">
-        <div class="section-label">🪑 Most Valuable Bench Warmer — top 3 bench points (season)</div>
+        <div class="section-label">🪑 Most Valuable Bench Warmer — top 3 bench avg/week (min ${MIN_AWARD_WEEKS} weeks)</div>
         <div class="mvp-cols">
           ${renderCol('ESPN', d.espn.benchTop, medals)}
           ${renderCol('Yahoo', d.yahoo.benchTop, medals)}
