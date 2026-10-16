@@ -775,16 +775,16 @@
         if (name) currentRoster[league].add(name);
       });
     });
-    const rank = (obj, dir, league) => Object.entries(obj)
+    const rank = (obj, dir, league, by = 'avg') => Object.entries(obj)
       .filter(([name]) => currentRoster[league].has(name))
       .filter(([, d]) => d.weeks >= MIN_AWARD_WEEKS)
       .map(([name, d]) => ({ name, total: Math.round(d.total * 100) / 100, weeks: d.weeks, avg: d.total / d.weeks }))
-      .sort((a, b) => dir === 'desc' ? b.avg - a.avg : a.avg - b.avg)
+      .sort((a, b) => dir === 'desc' ? b[by] - a[by] : a[by] - b[by])
       .slice(0, 3);
     const avg = arr => arr.length ? Math.round((arr.reduce((a,b)=>a+b,0) / arr.length) * 10) / 10 : null;
     state.mvpData = {
-      espn: { top: rank(totals.espn, 'desc', 'espn'), bottom: rank(totals.espn, 'asc', 'espn'), benchTop: rank(benchTotals.espn, 'desc', 'espn') },
-      yahoo: { top: rank(totals.yahoo, 'desc', 'yahoo'), bottom: rank(totals.yahoo, 'asc', 'yahoo'), benchTop: rank(benchTotals.yahoo, 'desc', 'yahoo') },
+      espn: { top: rank(totals.espn, 'desc', 'espn'), bottom: rank(totals.espn, 'asc', 'espn'), benchTop: rank(benchTotals.espn, 'desc', 'espn', 'total') },
+      yahoo: { top: rank(totals.yahoo, 'desc', 'yahoo'), bottom: rank(totals.yahoo, 'asc', 'yahoo'), benchTop: rank(benchTotals.yahoo, 'desc', 'yahoo', 'total') },
       trend,
       record,
       accuracy: {
@@ -958,14 +958,14 @@
     const d = state.mvpData || { espn:{top:[],bottom:[],benchTop:[]}, yahoo:{top:[],bottom:[],benchTop:[]}, trend:{espn:[],yahoo:[]}, record:{espn:{w:0,l:0},yahoo:{w:0,l:0}}, accuracy:{espn:{mine:null,opp:null},yahoo:{mine:null,opp:null}} };
     const medals = ['🥇','🥈','🥉'];
     const busts = ['📉','🪦','💀'];
-    const renderCol = (label, arr, icons) => `
+    const renderCol = (label, arr, icons, byTotal) => `
       <div class="mvp-col">
         <div class="mvp-col-label">${label}</div>
         ${arr.length ? arr.map((p,i)=>`
           <div class="mvp-row">
             <span class="mvp-rank">${icons[i]||''}</span>
             <span class="mvp-name">${escapeAttr(p.name)}</span>
-            <span class="mvp-total" title="${p.total.toFixed(2)} total points">${p.avg.toFixed(1)} <span style="font-size:10px; color:var(--text-dim); font-weight:400;">avg · ${p.weeks}w</span></span>
+            <span class="mvp-total" title="${byTotal ? p.avg.toFixed(1) + ' avg per week' : p.total.toFixed(2) + ' total points'}">${byTotal ? p.total.toFixed(2) : p.avg.toFixed(1)} <span style="font-size:10px; color:var(--text-dim); font-weight:400;">${byTotal ? 'total' : 'avg'} · ${p.weeks}w</span></span>
           </div>
         `).join('') : `<div class="empty-hint">Needs ${MIN_AWARD_WEEKS}+ weeks of data.</div>`}
       </div>`;
@@ -1011,10 +1011,10 @@
         </div>
       </div>
       <div class="mvp-section">
-        <div class="section-label">🪑 Most Valuable Bench Warmer — top 3 bench avg/week (min ${MIN_AWARD_WEEKS} weeks)</div>
+        <div class="section-label">🪑 Most Valuable Bench Warmer — top 3 bench total points (min ${MIN_AWARD_WEEKS} weeks)</div>
         <div class="mvp-cols">
-          ${renderCol('ESPN', d.espn.benchTop, medals)}
-          ${renderCol('Yahoo', d.yahoo.benchTop, medals)}
+          ${renderCol('ESPN', d.espn.benchTop, medals, true)}
+          ${renderCol('Yahoo', d.yahoo.benchTop, medals, true)}
         </div>
       </div>
     `;
